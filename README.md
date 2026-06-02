@@ -17,7 +17,7 @@ A TypeScript-native LevelDB-compatible embedded key-value storage engine, built 
 ## Installation
 
 ```bash
-npm install leveldb-ts
+npm install @wulai/leveldb-ts
 ```
 
 Requires Node.js >= 20.
@@ -25,7 +25,7 @@ Requires Node.js >= 20.
 ## Quick Start
 
 ```ts
-import { DB } from 'leveldb-ts';
+import { DB } from '@wulai/leveldb-ts';
 
 // Open (or create) a database
 const db = await DB.open('./mydb', { createIfMissing: true });
@@ -41,7 +41,7 @@ console.log(value?.toString()); // 'world'
 await db.delete(Buffer.from('hello'));
 
 // Batch writes
-import { WriteBatch } from 'leveldb-ts';
+import { WriteBatch } from '@wulai/leveldb-ts';
 const batch = new WriteBatch();
 batch.put(Buffer.from('a'), Buffer.from('1'));
 batch.put(Buffer.from('b'), Buffer.from('2'));
@@ -305,7 +305,7 @@ src/
 
 ## Testing
 
-This project uses a rigorous 21-methodology test approach. See [test.md](./test.md) for the full test report.
+This project uses a rigorous 21-methodology test approach with 472 test cases covering all 34 source modules.
 
 ```bash
 npm test           # Quick run
