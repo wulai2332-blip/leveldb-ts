@@ -42,7 +42,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arlei/leveldb-ts.git"
+    "url": "git+https://github.com/wulai2332-blip/leveldb-ts.git"
   },
   "author": "arlei",
   "license": "MIT",
