@@ -1,0 +1,64 @@
+{
+  "name": "leveldb-ts",
+  "version": "0.1.0",
+  "description": "A TypeScript-native LevelDB-compatible embedded key-value storage engine with LSM-Tree architecture, zero native dependencies",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:all": "vitest run tests/methodology/",
+    "test:watch": "vitest",
+    "bench": "vitest bench",
+    "lint": "eslint src/ tests/",
+    "format": "prettier --write src/ tests/",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "leveldb",
+    "key-value",
+    "database",
+    "lsm-tree",
+    "storage-engine",
+    "embedded-database",
+    "sstable",
+    "memtable",
+    "skiplist",
+    "bloom-filter",
+    "wal",
+    "compaction",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arlei/leveldb-ts.git"
+  },
+  "author": "arlei",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@mongodb-js/zstd": "^7.0.0",
+    "snappy": "^7.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "eslint": "^10.4.0",
+    "prettier": "^3.8.3",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
+  }
+}
