@@ -1,4 +1,4 @@
-import { openSync, writeSync, closeSync } from 'node:fs';
+import { openSync, writeSync, closeSync, fsyncSync } from 'node:fs';
 import { crc32, crc32cMask } from '../codec.js';
 
 const kBlockSize = 32768; // 32KB
@@ -71,7 +71,12 @@ export class LogWriter {
     this.blockOffset = 0;
   }
 
+  sync(): void {
+    fsyncSync(this.fd);
+  }
+
   async close(): Promise<void> {
+    fsyncSync(this.fd);
     closeSync(this.fd);
   }
 }

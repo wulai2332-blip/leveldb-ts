@@ -32,17 +32,17 @@ describe('Compression: None', () => {
     const opts = { ...defaultDBOptions(), compression: CompressionType.None };
     const builder = new TableBuilder(fp, opts);
     for (let i = 0; i < 50; i++) {
-      builder.add(
+      await builder.add(
         Buffer.from(`key${i.toString().padStart(3, '0')}`),
         Buffer.from(`value${i}`)
       );
     }
-    builder.finish();
+    await builder.finish();
 
     expect(existsSync(fp)).toBe(true);
 
     const table = await Table.open(fp);
-    const result = table.internalGet(new BytewiseComparator(), Buffer.from('key025'));
+    const result = await table.internalGet(new BytewiseComparator(), Buffer.from('key025'));
     expect(result).not.toBeNull();
     expect(result!.value.toString()).toBe('value25');
   });
@@ -51,11 +51,11 @@ describe('Compression: None', () => {
     const fp = join(rootDir, 'none2.ldb');
     const opts = { ...defaultDBOptions(), compression: CompressionType.None };
     const builder = new TableBuilder(fp, opts);
-    builder.add(Buffer.from('single'), Buffer.from('entry'));
-    builder.finish();
+    await builder.add(Buffer.from('single'), Buffer.from('entry'));
+    await builder.finish();
 
     const table = await Table.open(fp);
-    const result = table.internalGet(new BytewiseComparator(), Buffer.from('single'));
+    const result = await table.internalGet(new BytewiseComparator(), Buffer.from('single'));
     expect(result).not.toBeNull();
     expect(result!.value.toString()).toBe('entry');
   });
@@ -78,17 +78,17 @@ describe('Compression: Snappy', () => {
     const builder = new TableBuilder(fp, opts);
     // Write many entries with repetitive data (good for compression)
     for (let i = 0; i < 50; i++) {
-      builder.add(
+      await builder.add(
         Buffer.from(`key${i.toString().padStart(3, '0')}`),
         Buffer.from(`value_data_${i}_repeated_repeated_repeated`)
       );
     }
-    builder.finish();
+    await builder.finish();
 
     expect(existsSync(fp)).toBe(true);
 
     const table = await Table.open(fp);
-    const result = table.internalGet(new BytewiseComparator(), Buffer.from('key030'));
+    const result = await table.internalGet(new BytewiseComparator(), Buffer.from('key030'));
     expect(result).not.toBeNull();
     expect(result!.value.toString()).toContain('value_data_30');
   });
@@ -99,12 +99,12 @@ describe('Compression: Snappy', () => {
     const builder = new TableBuilder(fp, opts);
     // Add random (incompressible) data
     for (let i = 0; i < 20; i++) {
-      builder.add(
+      await builder.add(
         randomBytes(32),
         randomBytes(128)
       );
     }
-    builder.finish();
+    await builder.finish();
 
     expect(existsSync(fp)).toBe(true);
     const table = await Table.open(fp);
@@ -119,15 +119,15 @@ describe('Compression: Snappy', () => {
 
     const builderNone = new TableBuilder(fpNone, { ...defaultDBOptions(), compression: CompressionType.None });
     for (let i = 0; i < 100; i++) {
-      builderNone.add(Buffer.from(`k${i}`), repeatedData);
+      await builderNone.add(Buffer.from(`k${i}`), repeatedData);
     }
-    builderNone.finish();
+    await builderNone.finish();
 
     const builderSnappy = new TableBuilder(fpSnappy, { ...defaultDBOptions(), compression: CompressionType.Snappy });
     for (let i = 0; i < 100; i++) {
-      builderSnappy.add(Buffer.from(`k${i}`), repeatedData);
+      await builderSnappy.add(Buffer.from(`k${i}`), repeatedData);
     }
-    builderSnappy.finish();
+    await builderSnappy.finish();
 
     const { statSync } = await import('node:fs');
     const noneSize = statSync(fpNone).size;
@@ -145,18 +145,18 @@ describe('Compression: Zstd (fallback behavior)', () => {
     const opts = { ...defaultDBOptions(), compression: CompressionType.Zstd };
     const builder = new TableBuilder(fp, opts);
     for (let i = 0; i < 30; i++) {
-      builder.add(
+      await builder.add(
         Buffer.from(`zk${i.toString().padStart(3, '0')}`),
         Buffer.from(`zv${i}`)
       );
     }
-    builder.finish();
+    await builder.finish();
 
     expect(existsSync(fp)).toBe(true);
     const table = await Table.open(fp);
 
     // Data should be readable even if Zstd falls back to uncompressed
-    const result = table.internalGet(new BytewiseComparator(), Buffer.from('zk015'));
+    const result = await table.internalGet(new BytewiseComparator(), Buffer.from('zk015'));
     expect(result).not.toBeNull();
     expect(result!.value.toString()).toBe('zv15');
   });
@@ -169,12 +169,12 @@ describe('Compression: Zstd (fallback behavior)', () => {
       zstdCompressionLevel: 5,
     };
     const builder = new TableBuilder(fp, opts);
-    builder.add(Buffer.from('key'), Buffer.from('value'));
-    builder.finish();
+    await builder.add(Buffer.from('key'), Buffer.from('value'));
+    await builder.finish();
 
     expect(existsSync(fp)).toBe(true);
     const table = await Table.open(fp);
-    const result = table.internalGet(new BytewiseComparator(), Buffer.from('key'));
+    const result = await table.internalGet(new BytewiseComparator(), Buffer.from('key'));
     expect(result).not.toBeNull();
   });
 
@@ -188,11 +188,11 @@ describe('Compression: Zstd (fallback behavior)', () => {
     for (let i = 0; i < 20; i++) {
       const key = Buffer.from(`fb${i.toString().padStart(3, '0')}`);
       const val = Buffer.from(`fbval${i}`);
-      zstdBuilder.add(key, val);
-      noneBuilder.add(key, val);
+      await zstdBuilder.add(key, val);
+      await noneBuilder.add(key, val);
     }
-    zstdBuilder.finish();
-    noneBuilder.finish();
+    await zstdBuilder.finish();
+    await noneBuilder.finish();
 
     const zstdTable = await Table.open(fpZstd);
     const noneTable = await Table.open(fpNone);
@@ -200,8 +200,8 @@ describe('Compression: Zstd (fallback behavior)', () => {
     // Both should return the same values (Zstd falls back to uncompressed)
     for (let i = 0; i < 20; i++) {
       const key = Buffer.from(`fb${i.toString().padStart(3, '0')}`);
-      const zr = zstdTable.internalGet(new BytewiseComparator(), key);
-      const nr = noneTable.internalGet(new BytewiseComparator(), key);
+      const zr = await zstdTable.internalGet(new BytewiseComparator(), key);
+      const nr = await noneTable.internalGet(new BytewiseComparator(), key);
       expect(zr).not.toBeNull();
       expect(nr).not.toBeNull();
       expect(zr!.value).toEqual(nr!.value);
@@ -215,7 +215,7 @@ describe('Compression Edge Cases', () => {
     const fp = join(rootDir, 'empty-comp.ldb');
     const opts = { ...defaultDBOptions(), compression: CompressionType.Snappy };
     const builder = new TableBuilder(fp, opts);
-    builder.finish(); // Empty table with no data blocks
+    await builder.finish(); // Empty table with no data blocks
 
     expect(existsSync(fp)).toBe(true);
     // Opening empty table should work (may have minimal structure from finish())
@@ -226,11 +226,11 @@ describe('Compression Edge Cases', () => {
     const fp = join(rootDir, 'tiny-snappy.ldb');
     const opts = { ...defaultDBOptions(), compression: CompressionType.Snappy };
     const builder = new TableBuilder(fp, opts);
-    builder.add(Buffer.from([0x01]), Buffer.from([0x02]));
-    builder.finish();
+    await builder.add(Buffer.from([0x01]), Buffer.from([0x02]));
+    await builder.finish();
 
     const table = await Table.open(fp);
-    const result = table.internalGet(new BytewiseComparator(), Buffer.from([0x01]));
+    const result = await table.internalGet(new BytewiseComparator(), Buffer.from([0x01]));
     expect(result).not.toBeNull();
     expect(result!.value).toEqual(Buffer.from([0x02]));
   });
@@ -240,17 +240,17 @@ describe('Compression Edge Cases', () => {
     const opts = { ...defaultDBOptions(), compression: CompressionType.None, blockSize: 50 };
     const builder = new TableBuilder(fp, opts);
     for (let i = 0; i < 100; i++) {
-      builder.add(
+      await builder.add(
         Buffer.from(`mk${i.toString().padStart(4, '0')}`),
         Buffer.from(`mv${i}`)
       );
     }
-    builder.finish();
+    await builder.finish();
 
     const table = await Table.open(fp);
     // Check first, middle, and last entries
-    expect(table.internalGet(new BytewiseComparator(), Buffer.from('mk0000'))).not.toBeNull();
-    expect(table.internalGet(new BytewiseComparator(), Buffer.from('mk0050'))).not.toBeNull();
-    expect(table.internalGet(new BytewiseComparator(), Buffer.from('mk0099'))).not.toBeNull();
+    expect(await table.internalGet(new BytewiseComparator(), Buffer.from('mk0000'))).not.toBeNull();
+    expect(await table.internalGet(new BytewiseComparator(), Buffer.from('mk0050'))).not.toBeNull();
+    expect(await table.internalGet(new BytewiseComparator(), Buffer.from('mk0099'))).not.toBeNull();
   });
 });

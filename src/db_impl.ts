@@ -1,4 +1,5 @@
-import { existsSync, unlinkSync, statSync } from 'node:fs';
+import { existsSync, unlinkSync, statSync, readdirSync, rmdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { DB } from './db.js';
 import { MemTable } from './memtable.js';
@@ -16,8 +17,10 @@ import { TableCache } from './table_cache.js';
 import { TableBuilder } from './sstable/table_builder.js';
 import { CompactionScheduler } from './compaction/scheduler.js';
 import { tableFileName, logFileName } from './sstable/filename.js';
-import { decodeInternalKey, encodeInternalKey, ValueType, type SequenceNumber, type FileMetaData } from './types.js';
+import { decodeInternalKey, encodeInternalKey, ValueType, type SequenceNumber, type FileMetaData, type Range } from './types.js';
 import { defaultDBOptions, defaultReadOptions, defaultWriteOptions, type DBOptions, type ReadOptions, type WriteOptions } from './options.js';
+import { encodeUserKey, decodeUserKey, encodeUserValue, decodeUserValue } from './codec.js';
+import { CorruptionError, IOError } from './error.js';
 
 export class DBImpl extends DB {
   private mem!: MemTable;
@@ -64,10 +67,8 @@ export class DBImpl extends DB {
 
     // Initialize Worker Thread for async compaction (best-effort)
     try {
-      const workerPath = new URL('./compaction/worker.ts', import.meta.url);
-      db.compactionWorker = new Worker(workerPath, {
-        execArgv: ['--import', 'tsx/esm'],
-      });
+      const workerPath = new URL('./compaction/worker.js', import.meta.url);
+      db.compactionWorker = new Worker(workerPath);
       // Prevent MaxListenersExceededWarning when many DB instances are created
       db.compactionWorker.setMaxListeners(200);
       db.compactionWorker.on('error', () => {
@@ -80,21 +81,34 @@ export class DBImpl extends DB {
       // Worker not available — fallback to sync compaction
     }
 
-    // Recover log
-    const logPath = logFileName(name, db.logNumber || db.versions.manifestFileNum());
-    if (existsSync(logPath)) {
-      const reader = new LogReader(logPath);
-      let record: Buffer | null;
+    // Recover from all WAL logs
+    const logFiles = existsSync(name)
+      ? readdirSync(name).filter(f => f.endsWith('.log')).sort()
+      : [];
+
+    if (logFiles.length > 0) {
       db.mem = new MemTable(db.cmp);
-      while ((record = reader.readNext()) !== null) {
-        const batch = WriteBatch.decode(record);
-        db.seq++;
-        batch.iterate((key, value, type) => {
-          db.mem.add(db.seq, type, key, value);
-        });
+      for (const logFile of logFiles) {
+        const logPath = join(name, logFile);
+        try {
+          const reader = new LogReader(logPath);
+          let record: Buffer | null;
+          while ((record = reader.readNext()) !== null) {
+            const batch = WriteBatch.decode(record);
+            db.seq++;
+            batch.iterate((key, value, type) => {
+              db.mem.add(db.seq, type, key, value);
+            });
+          }
+        } catch {
+          // Skip corrupted log files — recovery is best-effort
+        }
+        // Delete old logs unless reuseLogs is set
+        if (!db.options.reuseLogs) {
+          try { unlinkSync(logPath); } catch { /* ignore */ }
+        }
       }
       db.versions.setLastSequence(db.seq);
-      unlinkSync(logPath);
     } else {
       db.mem = new MemTable(db.cmp);
     }
@@ -107,30 +121,43 @@ export class DBImpl extends DB {
     return db;
   }
 
+  static async destroyDB(name: string): Promise<void> {
+    if (!existsSync(name)) return;
+    const entries = readdirSync(name);
+    for (const entry of entries) {
+      const fullPath = join(name, entry);
+      try { unlinkSync(fullPath); } catch { /* best-effort */ }
+    }
+    try { rmdirSync(name); } catch { /* may have subdirs */ }
+  }
+
   // ─── Read Path ────────────────────────────────────────────
 
-  async get(key: Buffer, options: ReadOptions = {}): Promise<Buffer | null> {
+  async get(key: string | Buffer, options: ReadOptions = {}): Promise<string | Buffer | null> {
+    const kbuf = encodeUserKey(key, this.options.keyEncoding);
     const opts = { ...defaultReadOptions(), ...options };
     const snapshot = opts.snapshot ? opts.snapshot.sequence : this.seq;
 
     // 1. Active MemTable
-    const memResult = this.mem.get(key, snapshot);
+    const memResult = this.mem.get(kbuf, snapshot);
     if (memResult) {
       if (memResult.valueType === ValueType.Deletion) return null;
-      return memResult.value;
+      return decodeUserValue(memResult.value, this.options.valueEncoding);
     }
 
     // 2. Immutable MemTable
     if (this.immutableMem) {
-      const immResult = this.immutableMem.get(key, snapshot);
+      const immResult = this.immutableMem.get(kbuf, snapshot);
       if (immResult) {
         if (immResult.valueType === ValueType.Deletion) return null;
-        return immResult.value;
+        return decodeUserValue(immResult.value, this.options.valueEncoding);
       }
     }
 
     // 3. SSTables
-    return this.sstableGet(key, snapshot);
+    const val = await this.sstableGet(kbuf, snapshot);
+    if (val === null) return null;
+    return decodeUserValue(val, this.options.valueEncoding);
   }
 
   private async sstableGet(key: Buffer, snapshot: SequenceNumber): Promise<Buffer | null> {
@@ -163,18 +190,35 @@ export class DBImpl extends DB {
     snapshot: SequenceNumber
   ): Promise<Buffer | null | undefined> {
     const filename = tableFileName(this.dbname, file.fileNumber);
-    if (!existsSync(filename)) return undefined;
+    if (!existsSync(filename)) {
+      throw new IOError(`SSTable file not found: ${filename}`);
+    }
 
-    const table = await this.tableCache.getTable(filename, file.fileNumber);
+    const table = await this.tableCache.getTable(filename, file.fileNumber, this.options.paranoidChecks);
     // Use internalGet — but it doesn't know about sequence numbers
     // Seek to the entry and check the key/type
     const iter = table.iterator(this.cmp);
     const ikey = encodeInternalKey(key, snapshot, ValueType.Value);
-    iter.seek(ikey);
+    await iter.seek(ikey);
     if (!iter.valid()) return undefined;
 
     const foundKey = iter.key();
     const decoded = decodeInternalKey(foundKey);
+
+    // paranoidChecks: validate InternalKey integrity
+    if (this.options.paranoidChecks) {
+      if (decoded.sequence < 0n || decoded.sequence > ((1n << 56n) - 1n)) {
+        throw new CorruptionError(
+          `Corrupt internal key: invalid sequence ${decoded.sequence} in ${filename}`
+        );
+      }
+      if (decoded.valueType !== ValueType.Deletion && decoded.valueType !== ValueType.Value) {
+        throw new CorruptionError(
+          `Corrupt internal key: invalid value type ${decoded.valueType} in ${filename}`
+        );
+      }
+    }
+
     if (this.cmp.compare(decoded.userKey, key) !== 0) return undefined;
     if (decoded.sequence > snapshot) return undefined;
 
@@ -204,15 +248,18 @@ export class DBImpl extends DB {
 
   // ─── Write Path ───────────────────────────────────────────
 
-  async put(key: Buffer, value: Buffer, options: WriteOptions = {}): Promise<void> {
+  async put(key: string | Buffer, value: string | Buffer, options: WriteOptions = {}): Promise<void> {
     const batch = new WriteBatch();
-    batch.put(key, value);
+    batch.put(
+      encodeUserKey(key, this.options.keyEncoding),
+      encodeUserValue(value, this.options.valueEncoding)
+    );
     return this.write(batch, options);
   }
 
-  async delete(key: Buffer, options: WriteOptions = {}): Promise<void> {
+  async delete(key: string | Buffer, options: WriteOptions = {}): Promise<void> {
     const batch = new WriteBatch();
-    batch.delete(key);
+    batch.delete(encodeUserKey(key, this.options.keyEncoding));
     return this.write(batch, options);
   }
 
@@ -230,6 +277,11 @@ export class DBImpl extends DB {
     // Write to WAL
     const record = batch.encode();
     this.log.addRecord(record);
+
+    // Sync if requested
+    if (opts.sync) {
+      this.log.sync();
+    }
 
     // Write to MemTable
     batch.iterate((key, value, type) => {
@@ -305,12 +357,81 @@ export class DBImpl extends DB {
 
   // ─── Misc ─────────────────────────────────────────────────
 
-  getProperty(_property: string): string {
-    return `leveldb.memtable-size: ${this.mem.approximateMemoryUsage()}`;
+  getProperty(property: string): string {
+    const current = this.versions.current();
+
+    if (property === 'leveldb.memtable-size') {
+      return String(this.mem.approximateMemoryUsage());
+    }
+
+    if (property === 'leveldb.stats') {
+      const lines: string[] = [];
+      for (let level = 0; level < 7; level++) {
+        const files = current.files(level);
+        const totalSize = files.reduce((sum, f) => sum + f.fileSize, 0);
+        lines.push(`Level ${level}: ${files.length} files, ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+      }
+      return lines.join('\n');
+    }
+
+    if (property.startsWith('leveldb.num-files-at-level')) {
+      const level = parseInt(property.replace('leveldb.num-files-at-level', ''), 10);
+      if (isNaN(level) || level < 0 || level > 6) return '0';
+      return String(current.files(level).length);
+    }
+
+    if (property === 'leveldb.sstables') {
+      const lines: string[] = [];
+      for (let level = 0; level < 7; level++) {
+        for (const f of current.files(level)) {
+          lines.push(`Level-${level}: ${f.fileNumber}.ldb (${(f.fileSize / 1024).toFixed(1)} KB) [${decodeInternalKey(f.smallest).userKey.toString('hex')} .. ${decodeInternalKey(f.largest).userKey.toString('hex')}]`);
+        }
+      }
+      return lines.join('\n');
+    }
+
+    return '';
   }
 
-  async compactRange(_begin?: Buffer, _end?: Buffer): Promise<void> {
-    // Placeholder
+  getApproximateSizes(ranges: Range[]): bigint[] {
+    const current = this.versions.current();
+    const result: bigint[] = [];
+    for (const range of ranges) {
+      let size = 0n;
+      for (let level = 0; level < 7; level++) {
+        for (const f of current.files(level)) {
+          const fBegin = decodeInternalKey(f.smallest).userKey;
+          const fEnd = decodeInternalKey(f.largest).userKey;
+          if (Buffer.compare(fEnd, range.start) < 0) continue;
+          if (Buffer.compare(fBegin, range.limit) > 0) continue;
+          size += BigInt(f.fileSize);
+        }
+      }
+      result.push(size);
+    }
+    return result;
+  }
+
+  async compactRange(begin?: Buffer, end?: Buffer): Promise<void> {
+    for (let level = 0; level < 6; level++) {
+      const current = this.versions.current();
+      const files = current.files(level);
+      if (files.length === 0) continue;
+
+      let rangeFiles = files;
+      if (begin || end) {
+        rangeFiles = files.filter(f => {
+          const fBegin = decodeInternalKey(f.smallest).userKey;
+          const fEnd = decodeInternalKey(f.largest).userKey;
+          if (end && Buffer.compare(fBegin, end) > 0) return false;
+          if (begin && Buffer.compare(fEnd, begin) < 0) return false;
+          return true;
+        });
+      }
+
+      if (rangeFiles.length === 0) continue;
+      await this.compactionScheduler.compactLevel(level);
+    }
   }
 
   // ─── Flush ────────────────────────────────────────────────
@@ -342,7 +463,7 @@ export class DBImpl extends DB {
       const value = iter.value();
       if (!smallest) smallest = key;
       largest = key;
-      builder.add(key, value);
+      await builder.add(key, value);
       iter.next();
     }
 
@@ -351,7 +472,7 @@ export class DBImpl extends DB {
       return;
     }
 
-    builder.finish();
+    await builder.finish();
 
     const fileSize = statSync(filename).size;
     const meta: FileMetaData = {

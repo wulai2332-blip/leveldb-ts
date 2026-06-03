@@ -16,4 +16,5 @@ export type { Env } from './env.js';
 export { CompressionType } from './options.js';
 export type { DBOptions, ReadOptions, WriteOptions, Encoding } from './options.js';
 export type { Range } from './types.js';
+export { repairDB } from './repair.js';
 export { NotFoundError, CorruptionError, IOError, LevelDBError } from './error.js';

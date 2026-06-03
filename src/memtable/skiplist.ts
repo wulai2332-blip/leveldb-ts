@@ -34,7 +34,9 @@ export class SkipListIterator {
   }
 
   prev(): void {
-    // not supported for SkipList iter
+    if (!this.node) return;
+    const prev = this.list.findLessThan(this.node.key);
+    this.node = prev === this.list.head ? null : prev;
   }
 
   seek(key: Buffer): void {
@@ -90,6 +92,20 @@ export class SkipList {
       return { key: node.key, value: node.value };
     }
     return null;
+  }
+
+  findLessThan(key: Buffer): SkipListNode {
+    let x: SkipListNode = this.head;
+    let level = this.maxHeight - 1;
+    while (true) {
+      const next = x.next[level];
+      if (next !== null && this.cmp.compare(next.key, key) < 0) {
+        x = next;
+      } else {
+        if (level === 0) return x;
+        level--;
+      }
+    }
   }
 
   findGreaterOrEqual(key: Buffer): SkipListNode | null {

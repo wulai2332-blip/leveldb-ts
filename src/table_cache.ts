@@ -12,14 +12,14 @@ export class TableCache {
     });
   }
 
-  async getTable(filename: string, fileNumber: number): Promise<Table> {
+  async getTable(filename: string, fileNumber: number, verifyChecksums: boolean = false): Promise<Table> {
     const key = this.makeKey(fileNumber);
     const handle = this.cache.lookup(key);
     if (handle) {
       const table = this.tableMap.get(fileNumber);
       if (table) return table;
     }
-    const table = await Table.open(filename);
+    const table = await Table.open(filename, verifyChecksums);
     this.cache.insert(key, Buffer.from([0]), 1);
     this.tableMap.set(fileNumber, table);
     return table;

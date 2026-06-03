@@ -50,35 +50,35 @@ describe('TableBuilder State Transition', () => {
   beforeEach(() => { mkdirSync(baseDir, { recursive: true }); });
   afterEach(() => { try { rmSync(baseDir, { recursive: true, force: true }); } catch {} });
 
-  it('Open → Finished: normal transition', () => {
+  it('Open → Finished: normal transition', async () => {
     const fp = join(baseDir, 'test.ldb');
     const tb = new TableBuilder(fp, { ...defaultDBOptions(), compression: 0 });
-    tb.add(Buffer.from('k'), Buffer.from('v'));
-    tb.finish();
+    await tb.add(Buffer.from('k'), Buffer.from('v'));
+    await tb.finish();
     expect(existsSync(fp)).toBe(true);
   });
 
-  it('Open → Finished: empty table succeeds', () => {
+  it('Open → Finished: empty table succeeds', async () => {
     const fp = join(baseDir, 'empty.ldb');
     const tb = new TableBuilder(fp, { ...defaultDBOptions(), compression: 0 });
-    expect(() => tb.finish()).not.toThrow();
+    await expect(tb.finish()).resolves.not.toThrow();
   });
 
-  it('Finished state: cannot add or re-finish', () => {
+  it('Finished state: cannot add or re-finish', async () => {
     const fp = join(baseDir, 'double.ldb');
     const tb = new TableBuilder(fp, { ...defaultDBOptions(), compression: 0 });
-    tb.finish();
-    expect(() => tb.add(Buffer.from('k'), Buffer.from('v'))).toThrow();
-    expect(() => tb.finish()).toThrow();
+    await tb.finish();
+    await expect(tb.add(Buffer.from('k'), Buffer.from('v'))).rejects.toThrow();
+    await expect(tb.finish()).rejects.toThrow();
   });
 
-  it('Open → (data block flush) → Finished', () => {
+  it('Open → (data block flush) → Finished', async () => {
     const fp = join(baseDir, 'multi.ldb');
     const tb = new TableBuilder(fp, { ...defaultDBOptions(), compression: 0, blockSize: 100 });
     for (let i = 0; i < 50; i++) {
-      tb.add(Buffer.from(`key${i.toString().padStart(4, '0')}`), Buffer.from(`val${i}`));
+      await tb.add(Buffer.from(`key${i.toString().padStart(4, '0')}`), Buffer.from(`val${i}`));
     }
-    tb.finish();
+    await tb.finish();
     expect(existsSync(fp)).toBe(true);
   });
 });

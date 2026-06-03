@@ -1,3 +1,5 @@
+import type { Encoding } from './options.js';
+
 // --- Varint32 ---
 
 export function putVarint32(value: number): Buffer {
@@ -92,4 +94,28 @@ export function crc32cMask(crc: number): number {
 export function crc32cUnmask(masked: number): number {
   const rot = (masked - 0xa282ead8) >>> 0;
   return ((rot >>> 17) | (rot << 15)) >>> 0;
+}
+
+// --- User Key/Value Encoding ---
+
+export function encodeUserKey(key: string | Buffer, encoding: Encoding): Buffer {
+  if (Buffer.isBuffer(key)) return key;
+  if (encoding === 'utf8') return Buffer.from(key, 'utf8');
+  return Buffer.from(key);
+}
+
+export function decodeUserKey(key: Buffer, encoding: Encoding): string | Buffer {
+  if (encoding === 'buffer') return key;
+  return key.toString('utf8');
+}
+
+export function encodeUserValue(value: string | Buffer, encoding: Encoding): Buffer {
+  if (Buffer.isBuffer(value)) return value;
+  if (encoding === 'utf8') return Buffer.from(value, 'utf8');
+  return Buffer.from(value);
+}
+
+export function decodeUserValue(value: Buffer, encoding: Encoding): string | Buffer {
+  if (encoding === 'buffer') return value;
+  return value.toString('utf8');
 }

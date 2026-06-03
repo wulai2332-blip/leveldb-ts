@@ -88,13 +88,13 @@ describe('Compaction Merge Sort Logic', () => {
     const opts = { ...defaultDBOptions(), compression: 0 };
 
     const builder = new TableBuilder(fp, opts);
-    builder.add(Buffer.from('a'), Buffer.from('1'));
-    builder.add(Buffer.from('b'), Buffer.from('2'));
-    builder.add(Buffer.from('c'), Buffer.from('3'));
-    builder.finish();
+    await builder.add(Buffer.from('a'), Buffer.from('1'));
+    await builder.add(Buffer.from('b'), Buffer.from('2'));
+    await builder.add(Buffer.from('c'), Buffer.from('3'));
+    await builder.finish();
 
     const table = await Table.open(fp);
-    const result = table.internalGet(new BytewiseComparator(), Buffer.from('b'));
+    const result = await table.internalGet(new BytewiseComparator(), Buffer.from('b'));
     expect(result).not.toBeNull();
     expect(result!.value).toEqual(Buffer.from('2'));
   });
@@ -107,13 +107,13 @@ describe('Compaction Merge Sort Logic', () => {
 
     const builder = new TableBuilder(fp, opts);
     // Add same key twice — builder keeps both entries
-    builder.add(Buffer.from('dup'), Buffer.from('first'));
-    builder.add(Buffer.from('dup'), Buffer.from('second'));
-    builder.finish();
+    await builder.add(Buffer.from('dup'), Buffer.from('first'));
+    await builder.add(Buffer.from('dup'), Buffer.from('second'));
+    await builder.finish();
 
     const table = await Table.open(fp);
     // Should find the key (value will be the first encountered)
-    const result = table.internalGet(new BytewiseComparator(), Buffer.from('dup'));
+    const result = await table.internalGet(new BytewiseComparator(), Buffer.from('dup'));
     expect(result).not.toBeNull();
   });
 

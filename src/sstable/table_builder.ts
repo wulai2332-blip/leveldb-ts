@@ -4,6 +4,7 @@ import { putVarint64 } from '../codec.js';
 import { CompressionType } from '../options.js';
 import type { DBOptions } from '../options.js';
 import { compressSync as snappyCompress } from 'snappy';
+import { compress as zstdCompress } from '@mongodb-js/zstd';
 
 interface BlockHandle {
   offset: number;
@@ -18,6 +19,7 @@ export class TableBuilder {
   private numEntries = 0;
   private pendingIndexEntry = false;
   private finished = false;
+  private keys: Buffer[] = [];
 
   constructor(
     private filename: string,
@@ -27,29 +29,36 @@ export class TableBuilder {
     this.dataBuilder = new BlockBuilder(options.blockRestartInterval);
   }
 
-  add(key: Buffer, value: Buffer): void {
+  async add(key: Buffer, value: Buffer): Promise<void> {
     if (this.finished) throw new Error('TableBuilder already finished');
 
     this.lastKey = key;
     this.numEntries++;
     this.pendingIndexEntry = true;
     this.dataBuilder.add(key, value);
+    this.keys.push(key);
 
     if (this.dataBuilder.estimatedSize() >= this.options.blockSize) {
-      this.flushDataBlock();
+      await this.flushDataBlock();
     }
   }
 
-  finish(): void {
+  async finish(): Promise<void> {
     if (this.finished) throw new Error('TableBuilder already finished');
     this.finished = true;
 
     if (this.pendingIndexEntry) {
-      this.flushDataBlock();
+      await this.flushDataBlock();
     }
 
-    // Write filter block (placeholder: no filter)
-    const filterBlockHandle = this.writeRawBlock(Buffer.alloc(0));
+    // Write filter block
+    let filterBlockHandle: BlockHandle;
+    if (this.options.filterPolicy && this.keys.length > 0) {
+      const filter = this.options.filterPolicy.createFilter(this.keys);
+      filterBlockHandle = await this.writeRawBlock(filter);
+    } else {
+      filterBlockHandle = await this.writeRawBlock(Buffer.alloc(0));
+    }
 
     // Write meta index block (filter entry)
     const metaIndexBuilder = new BlockBuilder(this.options.blockRestartInterval);
@@ -58,36 +67,36 @@ export class TableBuilder {
       const value = this.encodeHandle(filterBlockHandle);
       metaIndexBuilder.add(key, value);
     }
-    const metaIndexHandle = this.writeBlock(metaIndexBuilder);
+    const metaIndexHandle = await this.writeBlock(metaIndexBuilder);
 
     // Write index block
-    const indexHandle = this.writeBlock(this.indexBuilder);
+    const indexHandle = await this.writeBlock(this.indexBuilder);
 
     // Write footer
     this.writeFooter(metaIndexHandle, indexHandle);
   }
 
-  private flushDataBlock(): void {
+  private async flushDataBlock(): Promise<void> {
     this.pendingIndexEntry = false;
-    const handle = this.writeBlock(this.dataBuilder);
+    const handle = await this.writeBlock(this.dataBuilder);
     this.indexBuilder.add(this.lastKey, this.encodeHandle(handle));
     this.dataBuilder = new BlockBuilder(this.options.blockRestartInterval);
   }
 
-  private writeBlock(builder: BlockBuilder): BlockHandle {
+  private async writeBlock(builder: BlockBuilder): Promise<BlockHandle> {
     const data = builder.finish();
     return this.writeRawBlock(data);
   }
 
-  private writeRawBlock(data: Buffer): BlockHandle {
-    const blockData = this.compressBlock(data);
+  private async writeRawBlock(data: Buffer): Promise<BlockHandle> {
+    const blockData = await this.compressBlock(data);
     const handle: BlockHandle = { offset: this.fileOffset, size: blockData.length };
     appendFileSync(this.filename, blockData);
     this.fileOffset += blockData.length;
     return handle;
   }
 
-  private compressBlock(data: Buffer): Buffer {
+  private async compressBlock(data: Buffer): Promise<Buffer> {
     const compType = this.options.compression;
 
     if (compType === CompressionType.Snappy) {
@@ -100,8 +109,14 @@ export class TableBuilder {
         // compression failed, fall through
       }
     } else if (compType === CompressionType.Zstd) {
-      // @mongodb-js/zstd only has an async API; skipping for now.
-      // TODO: add zstd compression when sync API is available
+      try {
+        const compressed = Buffer.from(await zstdCompress(data, this.options.zstdCompressionLevel));
+        if (compressed.length < data.length) {
+          return Buffer.concat([Buffer.from([CompressionType.Zstd]), compressed]);
+        }
+      } catch {
+        // compression failed, fall through
+      }
     }
 
     // Store uncompressed

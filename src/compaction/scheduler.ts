@@ -15,8 +15,8 @@ interface SourceIter {
   valid(): boolean;
   key(): Buffer;
   value(): Buffer;
-  next(): void;
-  seekToFirst(): void;
+  next(): Promise<void> | void;
+  seekToFirst(): Promise<void> | void;
 }
 
 interface HeapEntry {
@@ -161,7 +161,7 @@ export class CompactionScheduler {
 
     const heap: HeapEntry[] = [];
     for (const child of children) {
-      child.seekToFirst();
+      await child.seekToFirst();
       if (child.valid()) heap.push({ iter: child, key: child.key() });
     }
 
@@ -181,11 +181,11 @@ export class CompactionScheduler {
       if (!lastKey || Buffer.compare(key, lastKey) !== 0) {
         if (!outputSmallest) outputSmallest = key;
         outputLargest = key;
-        builder.add(key, value);
+        await builder.add(key, value);
         lastKey = key;
       }
 
-      top.iter.next();
+      await top.iter.next();
       if (top.iter.valid()) {
         top.key = top.iter.key();
         siftDown(heap, 0, internalCmp);
@@ -194,7 +194,7 @@ export class CompactionScheduler {
       }
     }
 
-    builder.finish();
+    await builder.finish();
 
     if (!outputSmallest || !outputLargest) return;
 

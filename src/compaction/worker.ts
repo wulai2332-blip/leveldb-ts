@@ -52,8 +52,8 @@ interface SourceIter {
   valid(): boolean;
   key(): Buffer;
   value(): Buffer;
-  next(): void;
-  seekToFirst(): void;
+  next(): Promise<void> | void;
+  seekToFirst(): Promise<void> | void;
 }
 
 interface HeapEntry {
@@ -112,10 +112,10 @@ async function handleCompactMemtable(msg: CompactMemtableRequest): Promise<void>
     const valBuf = Buffer.from(value, 'hex');
     if (!smallest) smallest = key;
     largest = key;
-    builder.add(keyBuf, valBuf);
+    await builder.add(keyBuf, valBuf);
   }
 
-  builder.finish();
+  await builder.finish();
 
   const fileSize = statSync(outputPath).size;
   parentPort?.postMessage({
@@ -159,7 +159,7 @@ async function handleDoCompaction(msg: DoCompactionRequest): Promise<void> {
   // Seed heap
   const heap: HeapEntry[] = [];
   for (const child of children) {
-    child.seekToFirst();
+    await child.seekToFirst();
     if (child.valid()) {
       heap.push({ iter: child, key: child.key() });
     }
@@ -181,11 +181,11 @@ async function handleDoCompaction(msg: DoCompactionRequest): Promise<void> {
     if (!lastKey || Buffer.compare(key, lastKey) !== 0) {
       if (!outputSmallest) outputSmallest = key;
       outputLargest = key;
-      builder.add(key, value);
+      await builder.add(key, value);
       lastKey = key;
     }
 
-    top.iter.next();
+    await top.iter.next();
     if (top.iter.valid()) {
       top.key = top.iter.key();
       siftDown(heap, 0, internalCmp);
@@ -194,7 +194,7 @@ async function handleDoCompaction(msg: DoCompactionRequest): Promise<void> {
     }
   }
 
-  builder.finish();
+  await builder.finish();
 
   const fileSize = statSync(outputPath).size;
   parentPort?.postMessage({

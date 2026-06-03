@@ -53,6 +53,60 @@ class BlockIterator {
     this.readEntry();
   }
 
+  seekToLast(): void {
+    if (this.numRestarts === 0) { this.pos = 0; return; }
+    this.seekToRestart(this.numRestarts - 1);
+    const dataEnd = this.data.length - 4 - this.numRestarts * 4;
+    // Track the last valid entry as we scan forward from the last restart
+    let lastKey = this.key_;
+    let lastValue = this.value_;
+    let lastPos = this.pos;
+    while (true) {
+      if (this.pos <= 0 || this.pos >= dataEnd) break;
+      this.readEntry();
+      if (!this.valid()) break;
+      lastKey = this.key_;
+      lastValue = this.value_;
+      lastPos = this.pos;
+    }
+    this.key_ = lastKey;
+    this.value_ = lastValue;
+    this.pos = lastPos;
+  }
+
+  prev(): void {
+    if (!this.valid()) return;
+    const currentKey = this.key_;
+    // Find which restart point would contain currentKey
+    let bestRestart = 0;
+    for (let i = 0; i < this.numRestarts; i++) {
+      this.seekToRestart(i);
+      if (!this.valid()) break;
+      if (Buffer.compare(this.key_, currentKey) >= 0) break;
+      bestRestart = i;
+    }
+    // Scan from that restart to find entry just before currentKey
+    this.seekToRestart(bestRestart);
+    let prevKey: Buffer | null = null;
+    let prevValue: Buffer | null = null;
+    let prevPos = 0;
+    const dataEnd = this.data.length - 4 - this.numRestarts * 4;
+    while (this.valid() && Buffer.compare(this.key_, currentKey) < 0) {
+      prevKey = this.key_;
+      prevValue = this.value_;
+      prevPos = this.pos;
+      this.readEntry();
+      if (this.pos >= dataEnd || this.pos === 0) break;
+    }
+    if (prevKey && prevValue) {
+      this.pos = prevPos;
+      this.key_ = prevKey;
+      this.value_ = prevValue;
+    } else {
+      this.pos = 0; // No previous entry
+    }
+  }
+
   seekToRestart(index: number): void {
     if (index < 0 || index >= this.numRestarts) {
       this.pos = 0;

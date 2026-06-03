@@ -111,17 +111,17 @@ describe('Layer 5: TableBuilder → Table', () => {
   it('build table and read it back', async () => {
     const fp = join(dir, 'table.ldb');
     const tb = new TableBuilder(fp, { ...defaultDBOptions(), compression: 0 });
-    tb.add(Buffer.from('a'), Buffer.from('1'));
-    tb.add(Buffer.from('b'), Buffer.from('2'));
-    tb.add(Buffer.from('c'), Buffer.from('3'));
-    tb.finish();
+    await tb.add(Buffer.from('a'), Buffer.from('1'));
+    await tb.add(Buffer.from('b'), Buffer.from('2'));
+    await tb.add(Buffer.from('c'), Buffer.from('3'));
+    await tb.finish();
 
     const table = await Table.open(fp);
-    const result = table.internalGet(new BytewiseComparator(), Buffer.from('b'));
+    const result = await table.internalGet(new BytewiseComparator(), Buffer.from('b'));
     expect(result).not.toBeNull();
     expect(result!.value).toEqual(Buffer.from('2'));
 
-    const missing = table.internalGet(new BytewiseComparator(), Buffer.from('z'));
+    const missing = await table.internalGet(new BytewiseComparator(), Buffer.from('z'));
     expect(missing).toBeNull();
   });
 });
@@ -186,8 +186,8 @@ describe('Layer 8: TableCache', () => {
   it('table cache stores and evicts tables', async () => {
     const fp = join(dir, 'cached.ldb');
     const tb = new TableBuilder(fp, { ...defaultDBOptions(), compression: 0 });
-    tb.add(Buffer.from('k'), Buffer.from('v'));
-    tb.finish();
+    await tb.add(Buffer.from('k'), Buffer.from('v'));
+    await tb.finish();
 
     const cache = new TableCache(2);
     const t1 = await cache.getTable(fp, 1);

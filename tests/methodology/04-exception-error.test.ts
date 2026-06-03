@@ -82,29 +82,29 @@ describe('BlockBuilder Exception Testing', () => {
 
 // ─── TableBuilder 异常 ───
 describe('TableBuilder Exception Testing', () => {
-  it('should throw if add is called after finish', () => {
+  it('should throw if add is called after finish', async () => {
     const dir = join(tmpdir(), `tb-test-${randomBytes(4).toString('hex')}`);
     mkdirSync(dir, { recursive: true });
     const fp = join(dir, 'test.ldb');
     try {
       const tb = new TableBuilder(fp, { ...defaultDBOptions(), compression: 0 });
-      tb.add(Buffer.from('k'), Buffer.from('v'));
-      tb.finish();
-      expect(() => tb.add(Buffer.from('k2'), Buffer.from('v2'))).toThrow('already finished');
+      await tb.add(Buffer.from('k'), Buffer.from('v'));
+      await tb.finish();
+      await expect(tb.add(Buffer.from('k2'), Buffer.from('v2'))).rejects.toThrow('already finished');
     } finally {
       try { rmSync(dir, { recursive: true, force: true }); } catch {}
     }
   });
 
-  it('should throw if finish is called twice', () => {
+  it('should throw if finish is called twice', async () => {
     const dir = join(tmpdir(), `tb-test2-${randomBytes(4).toString('hex')}`);
     mkdirSync(dir, { recursive: true });
     const fp = join(dir, 'test.ldb');
     try {
       const tb = new TableBuilder(fp, { ...defaultDBOptions(), compression: 0 });
-      tb.add(Buffer.from('k'), Buffer.from('v'));
-      tb.finish();
-      expect(() => tb.finish()).toThrow('already finished');
+      await tb.add(Buffer.from('k'), Buffer.from('v'));
+      await tb.finish();
+      await expect(tb.finish()).rejects.toThrow('already finished');
     } finally {
       try { rmSync(dir, { recursive: true, force: true }); } catch {}
     }

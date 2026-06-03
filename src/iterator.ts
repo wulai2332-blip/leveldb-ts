@@ -5,9 +5,11 @@ export interface IterLike {
   valid(): boolean;
   key(): Buffer;
   value(): Buffer;
-  next(): void;
-  seekToFirst(): void;
-  seek(target: Buffer): void;
+  next(): Promise<void> | void;
+  prev(): Promise<void> | void;
+  seekToFirst(): Promise<void> | void;
+  seekToLast(): Promise<void> | void;
+  seek(target: Buffer): Promise<void> | void;
 }
 
 type LazyChildFactory = () => Promise<IterLike[]>;
@@ -52,14 +54,28 @@ export class Iterator implements AsyncDisposable {
     await this.ensureChildren();
     this.heap = [];
     for (const child of this.children) {
-      child.seekToFirst();
+      await child.seekToFirst();
       if (child.valid()) {
         this.heap.push({ iter: child, key: child.key() });
       }
     }
     this.lastUserKey = null;
     this.heapify();
-    this.skipDuplicates();
+    await this.skipDuplicates();
+  }
+
+  async seekToLast(): Promise<void> {
+    await this.ensureChildren();
+    this.heap = [];
+    for (const child of this.children) {
+      await child.seekToLast();
+      if (child.valid()) {
+        this.heap.push({ iter: child, key: child.key() });
+      }
+    }
+    this.lastUserKey = null;
+    this.heapifyReverse();
+    await this.skipDuplicatesReverse();
   }
 
   async seek(target: Buffer): Promise<void> {
@@ -68,28 +84,42 @@ export class Iterator implements AsyncDisposable {
     const ikey = encodeInternalKey(target, seekSeq, ValueType.Value);
     this.heap = [];
     for (const child of this.children) {
-      child.seek(ikey);
+      await child.seek(ikey);
       if (child.valid()) {
         this.heap.push({ iter: child, key: child.key() });
       }
     }
     this.lastUserKey = null;
     this.heapify();
-    this.skipDuplicates();
+    await this.skipDuplicates();
   }
 
   async next(): Promise<void> {
     if (this.heap.length === 0) return;
     const entry = this.heap[0];
     this.lastUserKey = decodeInternalKey(entry.key).userKey;
-    entry.iter.next();
+    await entry.iter.next();
     if (entry.iter.valid()) {
       entry.key = entry.iter.key();
       this.siftDown(0);
     } else {
       this.heapPop();
     }
-    this.skipDuplicates();
+    await this.skipDuplicates();
+  }
+
+  async prev(): Promise<void> {
+    if (this.heap.length === 0) return;
+    const entry = this.heap[0];
+    this.lastUserKey = decodeInternalKey(entry.key).userKey;
+    await entry.iter.prev();
+    if (entry.iter.valid()) {
+      entry.key = entry.iter.key();
+      this.siftDownReverse(0);
+    } else {
+      this.heapPopReverse();
+    }
+    await this.skipDuplicatesReverse();
   }
 
   valid(): boolean {
@@ -156,11 +186,41 @@ export class Iterator implements AsyncDisposable {
     this.siftDown(0);
   }
 
+  // Max-heap helpers (for reverse iteration — largest InternalKey at top)
+  private heapifyReverse(): void {
+    for (let i = Math.floor(this.heap.length / 2) - 1; i >= 0; i--) {
+      this.siftDownReverse(i);
+    }
+  }
+
+  private siftDownReverse(i: number): void {
+    const n = this.heap.length;
+    while (true) {
+      let largest = i;
+      const left = 2 * i + 1;
+      const right = 2 * i + 2;
+      if (left < n && this.comp(this.heap[left].key, this.heap[largest].key) > 0) largest = left;
+      if (right < n && this.comp(this.heap[right].key, this.heap[largest].key) > 0) largest = right;
+      if (largest === i) break;
+      [this.heap[i], this.heap[largest]] = [this.heap[largest], this.heap[i]];
+      i = largest;
+    }
+  }
+
+  private heapPopReverse(): void {
+    if (this.heap.length <= 1) {
+      this.heap.pop();
+      return;
+    }
+    this.heap[0] = this.heap.pop()!;
+    this.siftDownReverse(0);
+  }
+
   private comp(a: Buffer, b: Buffer): number {
     return this.cmp.compare(a, b);
   }
 
-  private skipDuplicates(): void {
+  private async skipDuplicates(): Promise<void> {
     while (this.heap.length > 0) {
       const topKey = this.heap[0].key;
       const decoded = decodeInternalKey(topKey);
@@ -168,7 +228,7 @@ export class Iterator implements AsyncDisposable {
       // Skip entries newer than snapshot (fix: snapshot isolation)
       if (this.snapshot !== null && decoded.sequence > this.snapshot) {
         const entry = this.heap[0];
-        entry.iter.next();
+        await entry.iter.next();
         if (entry.iter.valid()) {
           entry.key = entry.iter.key();
           this.siftDown(0);
@@ -181,7 +241,7 @@ export class Iterator implements AsyncDisposable {
       if (decoded.valueType === ValueType.Deletion) {
         this.lastUserKey = decoded.userKey;
         const entry = this.heap[0];
-        entry.iter.next();
+        await entry.iter.next();
         if (entry.iter.valid()) {
           entry.key = entry.iter.key();
           this.siftDown(0);
@@ -193,12 +253,59 @@ export class Iterator implements AsyncDisposable {
 
       if (this.lastUserKey && Buffer.compare(decoded.userKey, this.lastUserKey) === 0) {
         const entry = this.heap[0];
-        entry.iter.next();
+        await entry.iter.next();
         if (entry.iter.valid()) {
           entry.key = entry.iter.key();
           this.siftDown(0);
         } else {
           this.heapPop();
+        }
+        continue;
+      }
+
+      break;
+    }
+  }
+
+  private async skipDuplicatesReverse(): Promise<void> {
+    while (this.heap.length > 0) {
+      const topKey = this.heap[0].key;
+      const decoded = decodeInternalKey(topKey);
+
+      // Skip entries newer than snapshot
+      if (this.snapshot !== null && decoded.sequence > this.snapshot) {
+        const entry = this.heap[0];
+        await entry.iter.prev();
+        if (entry.iter.valid()) {
+          entry.key = entry.iter.key();
+          this.siftDownReverse(0);
+        } else {
+          this.heapPopReverse();
+        }
+        continue;
+      }
+
+      if (decoded.valueType === ValueType.Deletion) {
+        this.lastUserKey = decoded.userKey;
+        const entry = this.heap[0];
+        await entry.iter.prev();
+        if (entry.iter.valid()) {
+          entry.key = entry.iter.key();
+          this.siftDownReverse(0);
+        } else {
+          this.heapPopReverse();
+        }
+        continue;
+      }
+
+      if (this.lastUserKey && Buffer.compare(decoded.userKey, this.lastUserKey) === 0) {
+        const entry = this.heap[0];
+        await entry.iter.prev();
+        if (entry.iter.valid()) {
+          entry.key = entry.iter.key();
+          this.siftDownReverse(0);
+        } else {
+          this.heapPopReverse();
         }
         continue;
       }
