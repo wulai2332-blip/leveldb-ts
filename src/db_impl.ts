@@ -121,7 +121,7 @@ export class DBImpl extends DB {
     return db;
   }
 
-  static async destroyDB(name: string): Promise<void> {
+  static async destroyDB(name: string, _options?: import('./options.js').DBOptions): Promise<void> {
     if (!existsSync(name)) return;
     const entries = readdirSync(name);
     for (const entry of entries) {

@@ -11,6 +11,8 @@ interface BlockHandle {
   size: number;
 }
 
+export type TableBuilderOptions = Required<DBOptions>;
+
 export class TableBuilder {
   private indexBuilder: BlockBuilder;
   private dataBuilder: BlockBuilder;

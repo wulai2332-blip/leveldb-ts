@@ -1,5 +1,6 @@
 import type { Comparator } from '../comparator.js';
 import type { Arena } from '../arena.js';
+import { Status } from '../status.js';
 
 const kMaxHeight = 12;
 const kBranching = 4;
@@ -51,6 +52,10 @@ export class SkipListIterator {
     let n: SkipListNode = this.list.head;
     while (n.next[0]) n = n.next[0]!;
     this.node = n === this.list.head ? null : n;
+  }
+
+  status(): Status {
+    return Status.ok();
   }
 }
 

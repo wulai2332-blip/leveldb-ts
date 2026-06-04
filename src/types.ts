@@ -16,7 +16,7 @@ export type InternalKey = Buffer;
 const kSeqInvertMask = 0xffffffffffffff00n;
 
 // Maximum valid sequence number: 2^56 - 1 (upper 8 bits reserved for ValueType)
-const kMaxSequenceNumber = (1n << 56n) - 1n;
+export const kMaxSequenceNumber = (1n << 56n) - 1n;
 
 export function encodeInternalKey(
   userKey: Buffer,

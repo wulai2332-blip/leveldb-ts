@@ -18,3 +18,6 @@ export type { DBOptions, ReadOptions, WriteOptions, Encoding } from './options.j
 export type { Range } from './types.js';
 export { repairDB } from './repair.js';
 export { NotFoundError, CorruptionError, IOError, LevelDBError } from './error.js';
+export { Table, openTable } from './sstable/table.js';
+export { TableBuilder } from './sstable/table_builder.js';
+export type { TableBuilderOptions } from './sstable/table_builder.js';

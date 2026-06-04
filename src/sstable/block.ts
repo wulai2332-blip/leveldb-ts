@@ -1,10 +1,12 @@
 import { getVarint32 } from '../codec.js';
 import type { Comparator } from '../comparator.js';
+import { Status } from '../status.js';
 
 class BlockIterator {
   private pos = 0;
   private key_: Buffer = Buffer.alloc(0);
   private value_: Buffer = Buffer.alloc(0);
+  private status_ = Status.ok();
 
   constructor(
     private data: Buffer,
@@ -23,6 +25,10 @@ class BlockIterator {
 
   value(): Buffer {
     return this.value_;
+  }
+
+  status(): Status {
+    return this.status_;
   }
 
   seekToFirst(): void {
@@ -118,27 +124,31 @@ class BlockIterator {
   }
 
   private readEntry(): void {
-    // Restart array starts at data.length - 4 - numRestarts * 4
     const dataEnd = this.data.length - 4 - this.numRestarts * 4;
     if (this.pos >= dataEnd) {
       this.pos = 0;
       return;
     }
 
-    const [shared, sLen] = getVarint32(this.data, this.pos);
-    this.pos += sLen;
-    const [nonShared, nsLen] = getVarint32(this.data, this.pos);
-    this.pos += nsLen;
-    const [valueLen, vLen] = getVarint32(this.data, this.pos);
-    this.pos += vLen;
+    try {
+      const [shared, sLen] = getVarint32(this.data, this.pos);
+      this.pos += sLen;
+      const [nonShared, nsLen] = getVarint32(this.data, this.pos);
+      this.pos += nsLen;
+      const [valueLen, vLen] = getVarint32(this.data, this.pos);
+      this.pos += vLen;
 
-    // Build key: shared prefix from last key + new bytes
-    const prefix = this.key_.subarray(0, shared);
-    const suffix = this.data.subarray(this.pos, this.pos + nonShared);
-    this.key_ = Buffer.concat([prefix, suffix]);
-    this.pos += nonShared;
-    this.value_ = this.data.subarray(this.pos, this.pos + valueLen);
-    this.pos += valueLen;
+      // Build key: shared prefix from last key + new bytes
+      const prefix = this.key_.subarray(0, shared);
+      const suffix = this.data.subarray(this.pos, this.pos + nonShared);
+      this.key_ = Buffer.concat([prefix, suffix]);
+      this.pos += nonShared;
+      this.value_ = this.data.subarray(this.pos, this.pos + valueLen);
+      this.pos += valueLen;
+    } catch {
+      this.status_ = Status.corruption('varint decode error in BlockIterator');
+      this.pos = 0;
+    }
   }
 }
 

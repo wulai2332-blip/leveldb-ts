@@ -6,6 +6,7 @@ import { crc32, getVarint64 } from '../codec.js';
 import { CompressionType } from '../options.js';
 import { uncompressSync as snappyUncompress } from 'snappy';
 import { decompress as zstdDecompress } from '@mongodb-js/zstd';
+import { Status } from '../status.js';
 
 async function decompressBlock(raw: Buffer): Promise<Buffer> {
   if (raw.length === 0) return raw;
@@ -177,6 +178,16 @@ class TwoLevelIterator {
 
   value(): Buffer {
     return this.dataIter!.value();
+  }
+
+  status(): Status {
+    if (!this.idxIter.status().ok()) {
+      return this.idxIter.status();
+    }
+    if (this.dataIter && !this.dataIter.status().ok()) {
+      return this.dataIter.status();
+    }
+    return Status.ok();
   }
 
   async seekToFirst(): Promise<void> {

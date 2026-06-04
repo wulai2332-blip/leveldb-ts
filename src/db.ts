@@ -10,9 +10,9 @@ export abstract class DB {
     return DBImpl.open(name, options);
   }
 
-  static async destroyDB(name: string): Promise<void> {
+  static async destroyDB(name: string, options: DBOptions = {}): Promise<void> {
     const { DBImpl } = await import('./db_impl.js');
-    return DBImpl.destroyDB(name);
+    return DBImpl.destroyDB(name, options);
   }
 
   abstract get(key: string | Buffer, options?: ReadOptions): Promise<string | Buffer | null>;

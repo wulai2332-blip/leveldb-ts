@@ -1,5 +1,6 @@
-import { decodeInternalKey, encodeInternalKey, ValueType, type SequenceNumber } from './types.js';
+import { decodeInternalKey, encodeInternalKey, ValueType, kMaxSequenceNumber, type SequenceNumber } from './types.js';
 import type { Comparator } from './comparator.js';
+import { Status } from './status.js';
 
 export interface IterLike {
   valid(): boolean;
@@ -10,6 +11,7 @@ export interface IterLike {
   seekToFirst(): Promise<void> | void;
   seekToLast(): Promise<void> | void;
   seek(target: Buffer): Promise<void> | void;
+  status(): Status;
 }
 
 type LazyChildFactory = () => Promise<IterLike[]>;
@@ -80,7 +82,7 @@ export class Iterator implements AsyncDisposable {
 
   async seek(target: Buffer): Promise<void> {
     await this.ensureChildren();
-    const seekSeq = this.snapshot ?? 0xffffffffffffffffn as SequenceNumber;
+    const seekSeq = this.snapshot ?? kMaxSequenceNumber;
     const ikey = encodeInternalKey(target, seekSeq, ValueType.Value);
     this.heap = [];
     for (const child of this.children) {
@@ -132,6 +134,14 @@ export class Iterator implements AsyncDisposable {
 
   value(): Buffer {
     return this.heap[0].iter.value();
+  }
+
+  status(): Status {
+    for (const child of this.children) {
+      const s = child.status();
+      if (!s.ok()) return s;
+    }
+    return Status.ok();
   }
 
   close(): void {
