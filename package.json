@@ -1,6 +1,6 @@
 {
   "name": "@wulai2332/leveldb-ts",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A TypeScript-native LevelDB-compatible embedded key-value storage engine with LSM-Tree architecture, zero native dependencies",
   "type": "module",
   "main": "./dist/index.js",
