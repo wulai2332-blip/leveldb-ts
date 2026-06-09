@@ -1,3 +1,7 @@
 .codegraph/
+.test-tmp/
+coverage/
+tests/
+api-docs.html
 bash.exe.stackdump
 *.tgz

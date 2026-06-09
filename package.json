@@ -49,12 +49,16 @@
   "engines": {
     "node": ">=20"
   },
+  "peerDependencies": {
+    "@types/node": ">=20"
+  },
   "dependencies": {
     "@mongodb-js/zstd": "^7.0.0",
     "snappy": "^7.3.3"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
+    "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^10.4.0",
     "prettier": "^3.8.3",
     "tsx": "^4.22.3",

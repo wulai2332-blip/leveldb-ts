@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>leveldb-ts API Documentation v0.1.2</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --border: #e0e0e0;
+    --text: #212121;
+    --text-secondary: #616161;
+    --primary: #1565c0;
+    --primary-light: #e3f2fd;
+    --accent: #00897b;
+    --warning: #ef6c00;
+    --code-bg: #f5f5f5;
+    --method-get: #2e7d32;
+    --method-post: #1565c0;
+    --method-delete: #c62828;
+    --tag-public: #2e7d32;
+    --tag-internal: #ef6c00;
+    --tag-type: #6a1b9a;
+    --tag-interface: #00838f;
+    --tag-function: #ad1457;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    display: flex;
+  }
+  /* Sidebar */
+  nav.sidebar {
+    width: 300px;
+    min-width: 300px;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    font-size: 14px;
+  }
+  nav.sidebar h2 {
+    font-size: 16px;
+    color: var(--primary);
+    margin: 16px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  nav.sidebar h2:first-child { margin-top: 0; }
+  nav.sidebar a {
+    display: block;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 3px 8px;
+    border-radius: 4px;
+    transition: background .15s, color .15s;
+  }
+  nav.sidebar a:hover { background: var(--primary-light); color: var(--primary); }
+  nav.sidebar .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .tag-public { background: #e8f5e9; color: var(--tag-public); }
+  .tag-internal { background: #fff3e0; color: var(--tag-internal); }
+  /* Main content */
+  main {
+    flex: 1;
+    padding: 32px 48px;
+    max-width: 1000px;
+    min-width: 0;
+  }
+  main h1 {
+    font-size: 32px;
+    margin-bottom: 8px;
+    color: var(--primary);
+  }
+  main h2 {
+    font-size: 24px;
+    margin: 48px 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text);
+  }
+  main h3 {
+    font-size: 18px;
+    margin: 32px 0 12px 0;
+    color: var(--primary);
+  }
+  main h4 {
+    font-size: 15px;
+    margin: 20px 0 8px 0;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .module-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 20px 0;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .badge-public { background: #e8f5e9; color: #2e7d32; }
+  .badge-internal { background: #fff3e0; color: #ef6c00; }
+  .badge-interface { background: #e0f7fa; color: #00838f; }
+  .badge-type { background: #f3e5f5; color: #6a1b9a; }
+  .badge-enum { background: #fce4ec; color: #ad1457; }
+  .badge-function { background: #fce4ec; color: #ad1457; }
+  .badge-class { background: #e3f2fd; color: #1565c0; }
+  .badge-abstract { background: #ede7f6; color: #4527a0; }
+  table.api-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 20px 0;
+    font-size: 14px;
+  }
+  table.api-table th {
+    background: var(--code-bg);
+    text-align: left;
+    padding: 8px 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  table.api-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.api-table tr:last-child td { border-bottom: none; }
+  table.api-table .name-col {
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  table.api-table .type-col {
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--tag-type);
+    white-space: nowrap;
+  }
+  table.api-table .desc-col {
+    color: var(--text-secondary);
+  }
+  code {
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  .src-link {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-left: 8px;
+  }
+  .deprecation {
+    background: #fff8e1;
+    border-left: 3px solid var(--warning);
+    padding: 8px 12px;
+    margin: 8px 0;
+    font-size: 13px;
+    border-radius: 0 4px 4px 0;
+  }
+  .description-block {
+    margin: 8px 0 16px 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+  .import-block {
+    background: #263238;
+    color: #eeffff;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 13px;
+    margin: 12px 0;
+    overflow-x: auto;
+  }
+  .search-box {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 12px;
+    outline: none;
+  }
+  .search-box:focus { border-color: var(--primary); }
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .overview-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .overview-card h4 { margin-top: 0; }
+  .overview-card p { font-size: 13px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+<nav class="sidebar" id="sidebar">
+  <div style="font-weight:700;font-size:18px;color:var(--primary);margin-bottom:8px;">leveldb-ts v0.1.2</div>
+  <input class="search-box" placeholder="Filter modules..." oninput="filterNav(this.value)">
+  <h2>Public API</h2>
+  <a href="#db">DB <span class="tag tag-public">class</span></a>
+  <a href="#options">Options <span class="tag tag-public">types</span></a>
+  <a href="#writebatch">WriteBatch <span class="tag tag-public">class</span></a>
+  <a href="#iterator">Iterator <span class="tag tag-public">class</span></a>
+  <a href="#snapshot">Snapshot <span class="tag tag-public">class</span></a>
+  <a href="#comparator">Comparator <span class="tag tag-public">interface</span></a>
+  <a href="#status">Status <span class="tag tag-public">class</span></a>
+  <a href="#errors">Errors <span class="tag tag-public">classes</span></a>
+  <a href="#cache">LRUCache <span class="tag tag-public">class</span></a>
+  <a href="#env">Env <span class="tag tag-public">interface</span></a>
+  <a href="#logger">Logger <span class="tag tag-public">interface</span></a>
+  <a href="#repair">repairDB <span class="tag tag-public">function</span></a>
+  <a href="#sstable-public">SSTable Public <span class="tag tag-public">classes</span></a>
+  <a href="#bloom">Bloom Filter <span class="tag tag-public">interface</span></a>
+  <h2>Internal API</h2>
+  <a href="#dbimpl">DBImpl <span class="tag tag-internal">class</span></a>
+  <a href="#types">Internal Types <span class="tag tag-internal">types</span></a>
+  <a href="#codec">Codec <span class="tag tag-internal">codec</span></a>
+  <a href="#memtable">MemTable <span class="tag tag-internal">class</span></a>
+  <a href="#skiplist">SkipList <span class="tag tag-internal">class</span></a>
+  <a href="#arena">Arena <span class="tag tag-internal">class</span></a>
+  <a href="#block">Block <span class="tag tag-internal">class</span></a>
+  <a href="#blockbuilder">BlockBuilder <span class="tag tag-internal">class</span></a>
+  <a href="#table">Table <span class="tag tag-internal">class</span></a>
+  <a href="#tablebuilder">TableBuilder <span class="tag tag-internal">class</span></a>
+  <a href="#tablecache">TableCache <span class="tag tag-internal">class</span></a>
+  <a href="#wal">WAL (Log) <span class="tag tag-internal">classes</span></a>
+  <a href="#filename">Filename <span class="tag tag-internal">functions</span></a>
+  <a href="#version">Version <span class="tag tag-internal">class</span></a>
+  <a href="#versionedit">VersionEdit <span class="tag tag-internal">class</span></a>
+  <a href="#versionedittag">VersionEditTag <span class="tag tag-internal">enum</span></a>
+  <a href="#versionset">VersionSet <span class="tag tag-internal">class</span></a>
+  <a href="#compaction">Compaction <span class="tag tag-internal">classes</span></a>
+</nav>
+
+<main>
+
+<h1>leveldb-ts API Documentation</h1>
+<p class="description-block">
+  A TypeScript-native, zero-native-dependency, LevelDB-compatible embedded key-value storage engine
+  with LSM-Tree architecture. Builds on Node.js (>=20) with pure TypeScript (ES2023, NodeNext).
+  Package: <code>@wulai2332/leveldb-ts</code> &mdash; 25 core modules.
+</p>
+
+<div class="import-block">// Value exports
+import { DB, WriteBatch, Iterator, Snapshot, Status, LRUCache,
+         BytewiseComparator, ConsoleLogger, NoopLogger,
+         NodeEnv, CompressionType, repairDB,
+         NotFoundError, CorruptionError, IOError, LevelDBError,
+         newBloomFilterPolicy, Table, TableBuilder, openTable }
+  from '@wulai2332/leveldb-ts';
+
+// Type-only exports
+import type { DBOptions, ReadOptions, WriteOptions, Encoding,
+              Comparator, FilterPolicy, CacheHandle,
+              TableBuilderOptions, Logger, Env, Range }
+  from '@wulai2332/leveldb-ts';</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- PUBLIC API                                                       -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+
+<h2 id="db">DB <span class="badge badge-abstract">abstract class</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    The primary entry point for leveldb-ts. <code>DB</code> is an abstract class providing static factory methods
+    and the core CRUD/management surface. The concrete implementation (<code>DBImpl</code>) is lazy-loaded on first <code>open()</code>.
+    <span class="src-link">src/db.ts</span>
+  </p>
+
+  <h4>Static Methods</h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Signature</th><th>Description</th></tr>
+    <tr>
+      <td class="name-col">DB.open</td>
+      <td class="type-col">(name: string, options?: DBOptions) =&gt; Promise&lt;DB&gt;</td>
+      <td class="desc-col">Opens or creates a LevelDB database at the given path. Lazy-imports <code>DBImpl</code>.</td>
+    </tr>
+    <tr>
+      <td class="name-col">DB.destroyDB</td>
+      <td class="type-col">(name: string, options?: DBOptions) =&gt; Promise&lt;void&gt;</td>
+      <td class="desc-col">Destroys the database directory and all its contents. Best-effort cleanup.</td>
+    </tr>
+  </table>
+
+  <h4>Instance Methods (Abstract)</h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Signature</th><th>Description</th></tr>
+    <tr>
+      <td class="name-col">get</td>
+      <td class="type-col">(key: string | Buffer, options?: ReadOptions) =&gt; Promise&lt;string | Buffer | null&gt;</td>
+      <td class="desc-col">Retrieves the value for <code>key</code>. Returns <code>null</code> if not found. Checks MemTable → Immutable MemTable → SSTables (L0 newest→oldest, L1+ binary search).</td>
+    </tr>
+    <tr>
+      <td class="name-col">put</td>
+      <td class="type-col">(key: string | Buffer, value: string | Buffer, options?: WriteOptions) =&gt; Promise&lt;void&gt;</td>
+      <td class="desc-col">Inserts or updates a key-value pair. Internally delegates to <code>write()</code> with a single-entry WriteBatch.</td>
+    </tr>
+    <tr>
+      <td class="name-col">delete</td>
+      <td class="type-col">(key: string | Buffer, options?: WriteOptions) =&gt; Promise&lt;void&gt;</td>
+      <td class="desc-col">Deletes a key. Writes a deletion tombstone via WriteBatch.</td>
+    </tr>
+    <tr>
+      <td class="name-col">write</td>
+      <td class="type-col">(batch: WriteBatch, options?: WriteOptions) =&gt; Promise&lt;void&gt;</td>
+      <td class="desc-col">Atomically applies a batch of operations. Writes to WAL first, then MemTable. Serialized via write lock.</td>
+    </tr>
+    <tr>
+      <td class="name-col">iterator</td>
+      <td class="type-col">(options?: ReadOptions) =&gt; Iterator</td>
+      <td class="desc-col">Returns an <code>Iterator</code> over the database (MemTable + Immutable MemTable + SSTables).</td>
+    </tr>
+    <tr>
+      <td class="name-col">getSnapshot</td>
+      <td class="type-col">() =&gt; Snapshot</td>
+      <td class="desc-col">Acquires a point-in-time snapshot for consistent reads.</td>
+    </tr>
+    <tr>
+      <td class="name-col">releaseSnapshot</td>
+      <td class="type-col">(snapshot: Snapshot) =&gt; void</td>
+      <td class="desc-col">Releases a previously acquired snapshot.</td>
+    </tr>
+    <tr>
+      <td class="name-col">getProperty</td>
+      <td class="type-col">(property: string) =&gt; string</td>
+      <td class="desc-col">Gets database properties. Supported: <code>leveldb.memtable-size</code>, <code>leveldb.stats</code>, <code>leveldb.num-files-at-levelN</code>, <code>leveldb.sstables</code>.</td>
+    </tr>
+    <tr>
+      <td class="name-col">getApproximateSizes</td>
+      <td class="type-col">(ranges: Range[]) =&gt; bigint[]</td>
+      <td class="desc-col">Estimates the on-disk size of SSTable files overlapping the given key ranges.</td>
+    </tr>
+    <tr>
+      <td class="name-col">compactRange</td>
+      <td class="type-col">(begin?: Buffer, end?: Buffer) =&gt; Promise&lt;void&gt;</td>
+      <td class="desc-col">Manually triggers compaction for files overlapping the key range across all levels.</td>
+    </tr>
+    <tr>
+      <td class="name-col">close</td>
+      <td class="type-col">() =&gt; Promise&lt;void&gt;</td>
+      <td class="desc-col">Flushes active MemTables, terminates the compaction Worker, and closes the WAL.</td>
+    </tr>
+  </table>
+</div>
+
+<h2 id="options">Options <span class="badge badge-type">types</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">Configuration interfaces and enums for database creation and read/write operations. <span class="src-link">src/options.ts</span></p>
+
+  <h4>CompressionType (enum)</h4>
+  <table class="api-table">
+    <tr><th>Member</th><th>Value</th><th>Description</th></tr>
+    <tr><td class="name-col">None</td><td class="type-col">0</td><td>No compression</td></tr>
+    <tr><td class="name-col">Snappy</td><td class="type-col">1</td><td>Google Snappy compression (default)</td></tr>
+    <tr><td class="name-col">Zstd</td><td class="type-col">2</td><td>Zstandard compression with configurable level</td></tr>
+  </table>
+
+  <h4>Encoding (type)</h4>
+  <p><code>type Encoding = 'utf8' | 'buffer'</code> — controls how user keys/values are serialized.</p>
+
+  <h4>DBOptions (interface)</h4>
+  <table class="api-table">
+    <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td class="name-col">createIfMissing</td><td class="type-col">boolean</td><td>false</td><td>Create the database if it doesn't exist</td></tr>
+    <tr><td class="name-col">errorIfExists</td><td class="type-col">boolean</td><td>false</td><td>Throw an error if the database already exists</td></tr>
+    <tr><td class="name-col">paranoidChecks</td><td class="type-col">boolean</td><td>false</td><td>Perform extra validation on InternalKey integrity during reads</td></tr>
+    <tr><td class="name-col">writeBufferSize</td><td class="type-col">number</td><td>4 MB</td><td>MemTable size threshold that triggers a flush to SSTable</td></tr>
+    <tr><td class="name-col">maxOpenFiles</td><td class="type-col">number</td><td>1000</td><td>Maximum concurrently open SSTable files (LRU-cached)</td></tr>
+    <tr><td class="name-col">blockSize</td><td class="type-col">number</td><td>4096</td><td>SSTable data block size in bytes</td></tr>
+    <tr><td class="name-col">blockRestartInterval</td><td class="type-col">number</td><td>16</td><td>Number of entries between block restart points</td></tr>
+    <tr><td class="name-col">maxFileSize</td><td class="type-col">number</td><td>2 MB</td><td>Maximum SSTable file size (informational)</td></tr>
+    <tr><td class="name-col">compression</td><td class="type-col">CompressionType</td><td>Snappy</td><td>Block compression algorithm</td></tr>
+    <tr><td class="name-col">zstdCompressionLevel</td><td class="type-col">number</td><td>1</td><td>Compression level when using Zstd</td></tr>
+    <tr><td class="name-col">reuseLogs</td><td class="type-col">boolean</td><td>false</td><td>Keep WAL log files after recovery</td></tr>
+    <tr><td class="name-col">filterPolicy</td><td class="type-col">FilterPolicy</td><td>&mdash;</td><td>Bloom filter policy for SSTable reads</td></tr>
+    <tr><td class="name-col">comparator</td><td class="type-col">Comparator</td><td>&mdash;</td><td>Custom key ordering comparator</td></tr>
+    <tr><td class="name-col">blockCache</td><td class="type-col">LRUCache</td><td>&mdash;</td><td>Custom block cache instance</td></tr>
+    <tr><td class="name-col">env</td><td class="type-col">Env</td><td>&mdash;</td><td>File-system abstraction layer</td></tr>
+    <tr><td class="name-col">logger</td><td class="type-col">Logger</td><td>&mdash;</td><td>Logging implementation</td></tr>
+    <tr><td class="name-col">keyEncoding</td><td class="type-col">Encoding</td><td>'buffer'</td><td>Encoding for user keys</td></tr>
+    <tr><td class="name-col">valueEncoding</td><td class="type-col">Encoding</td><td>'buffer'</td><td>Encoding for user values</td></tr>
+  </table>
+
+  <h4>ReadOptions (interface)</h4>
+  <table class="api-table">
+    <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td class="name-col">verifyChecksums</td><td class="type-col">boolean</td><td>false</td><td>Verify block checksums during reads</td></tr>
+    <tr><td class="name-col">fillCache</td><td class="type-col">boolean</td><td>true</td><td>Whether read blocks should be cached</td></tr>
+    <tr><td class="name-col">snapshot</td><td class="type-col">Snapshot | null</td><td>null</td><td>Read at a specific snapshot for MVCC isolation</td></tr>
+  </table>
+
+  <h4>WriteOptions (interface)</h4>
+  <table class="api-table">
+    <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td class="name-col">sync</td><td class="type-col">boolean</td><td>false</td><td>Force WAL fsync before returning</td></tr>
+  </table>
+
+  <h4>Factory Functions</h4>
+  <table class="api-table">
+    <tr><th>Function</th><th>Returns</th><th>Description</th></tr>
+    <tr><td class="name-col">defaultDBOptions()</td><td class="type-col">Required&lt;Omit&lt;DBOptions, ...&gt;&gt;</td><td>Returns default database options</td></tr>
+    <tr><td class="name-col">defaultReadOptions()</td><td class="type-col">Required&lt;Omit&lt;ReadOptions, 'snapshot'&gt;&gt;</td><td>Returns default read options</td></tr>
+    <tr><td class="name-col">defaultWriteOptions()</td><td class="type-col">Required&lt;WriteOptions&gt;</td><td>Returns default write options</td></tr>
+  </table>
+</div>
+
+<h2 id="writebatch">WriteBatch <span class="badge badge-class">class</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">Atomic batch write primitive. Groups multiple <code>put</code> and <code>delete</code> operations into a single atomic unit. <span class="src-link">src/write_batch.ts</span></p>
+
+  <h4>Methods</h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Signature</th><th>Description</th></tr>
+    <tr>
+      <td class="name-col">put</td>
+      <td class="type-col">(key: Buffer, value: Buffer) =&gt; void</td>
+      <td class="desc-col">Adds a Put operation to the batch. Keys/values are expected to be already encoded.</td>
+    </tr>
+    <tr>
+      <td class="name-col">delete</td>
+      <td class="type-col">(key: Buffer) =&gt; void</td>
+      <td class="desc-col">Adds a Delete (tombstone) operation to the batch.</td>
+    </tr>
+    <tr>
+      <td class="name-col">clear</td>
+      <td class="type-col">() =&gt; void</td>
+      <td class="desc-col">Resets the batch, clearing all entries.</td>
+    </tr>
+    <tr>
+      <td class="name-col">approxSize</td>
+      <td class="type-col">() =&gt; number</td>
+      <td class="desc-col">Returns the approximate byte size of the encoded batch payload.</td>
+    </tr>
+    <tr>
+      <td class="name-col">iterate</td>
+      <td class="type-col">(fn: (key: Buffer, value: Buffer, type: ValueType) =&gt; void) =&gt; void</td>
+      <td class="desc-col">Iterates over each entry in the batch for processing.</td>
+    </tr>
+    <tr>
+      <td class="name-col">append</td>
+      <td class="type-col">(other: WriteBatch) =&gt; void</td>
+      <td class="desc-col">Merges another WriteBatch into this one (deep copies keys/values).</td>
+    </tr>
+    <tr>
+      <td class="name-col">encode</td>
+      <td class="type-col">() =&gt; Buffer</td>
+      <td class="desc-col">Serializes to the LevelDB WriteBatch wire format (8B seq + 4B count + entries).</td>
+    </tr>
+    <tr>
+      <td class="name-col" style="color:var(--method-post)">static decode</td>
+      <td class="type-col">(data: Buffer) =&gt; WriteBatch</td>
+      <td class="desc-col">Deserializes a WriteBatch from the wire format.</td>
+    </tr>
+  </table>
+</div>
+
+<h2 id="iterator">Iterator <span class="badge badge-class">class</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Merging iterator over multiple sorted data sources. Uses a min-heap (for forward) / max-heap (for reverse)
+    to produce a unified sorted view over MemTable + Immutable MemTable + SSTables.
+    Supports duplicate suppression, snapshot isolation, and async iteration.
+    <span class="src-link">src/iterator.ts</span>
+  </p>
+
+  <h4>Interfaces</h4>
+  <table class="api-table">
+    <tr><th>Name</th><th>Kind</th><th>Description</th></tr>
+    <tr>
+      <td class="name-col">IterLike</td>
+      <td class="type-col">interface</td>
+      <td class="desc-col">Contract for any iterable source: <code>valid()</code>, <code>key()</code>, <code>value()</code>, <code>next()</code>, <code>prev()</code>, <code>seekToFirst()</code>, <code>seekToLast()</code>, <code>seek(target)</code>, <code>status()</code>.</td>
+    </tr>
+  </table>
+
+  <h4>Instance Methods</h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Signature</th><th>Description</th></tr>
+    <tr><td class="name-col">seekToFirst</td><td class="type-col">() =&gt; Promise&lt;void&gt;</td><td>Positions at the first entry. Lazily resolves SSTable iterators.</td></tr>
+    <tr><td class="name-col">seekToLast</td><td class="type-col">() =&gt; Promise&lt;void&gt;</td><td>Positions at the last entry (reverse heap).</td></tr>
+    <tr><td class="name-col">seek</td><td class="type-col">(target: Buffer) =&gt; Promise&lt;void&gt;</td><td>Positions at the first key &ge; target.</td></tr>
+    <tr><td class="name-col">next</td><td class="type-col">() =&gt; Promise&lt;void&gt;</td><td>Advances to the next entry, skipping duplicates and deletions.</td></tr>
+    <tr><td class="name-col">prev</td><td class="type-col">() =&gt; Promise&lt;void&gt;</td><td>Moves to the previous entry (reverse traversal).</td></tr>
+    <tr><td class="name-col">valid</td><td class="type-col">() =&gt; boolean</td><td>Whether the iterator is currently positioned on a valid entry.</td></tr>
+    <tr><td class="name-col">key</td><td class="type-col">() =&gt; Buffer</td><td>Returns the user key (decoded from InternalKey) at the current position.</td></tr>
+    <tr><td class="name-col">value</td><td class="type-col">() =&gt; Buffer</td><td>Returns the value at the current position.</td></tr>
+    <tr><td class="name-col">status</td><td class="type-col">() =&gt; Status</td><td>Returns the combined status of all child iterators.</td></tr>
+    <tr><td class="name-col">close</td><td class="type-col">() =&gt; void</td><td>Resets all heap state and child iterators.</td></tr>
+    <tr><td class="name-col">[Symbol.asyncDispose]</td><td class="type-col">() =&gt; Promise&lt;void&gt;</td><td>Async disposal via <code>await using</code>.</td></tr>
+    <tr><td class="name-col">[Symbol.asyncIterator]</td><td class="type-col">() =&gt; AsyncIterator&lt;{key: Buffer, value: Buffer}&gt;</td><td>Supports <code>for await...of</code> iteration.</td></tr>
+  </table>
+</div>
+
+<h2 id="snapshot">Snapshot <span class="badge badge-class">class</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    A point-in-time view of the database. Provides MVCC read isolation by recording the sequence number at creation time.
+    <span class="src-link">src/snapshot.ts</span>
+  </p>
+
+  <h4>Properties &amp; Methods</h4>
+  <table class="api-table">
+    <tr><th>Member</th><th>Type</th><th>Description</th></tr>
+    <tr><td class="name-col">sequence</td><td class="type-col">SequenceNumber (bigint)</td><td>The database sequence number when this snapshot was taken. Reads ignore entries with seq &gt; snapshot.sequence.</td></tr>
+    <tr><td class="name-col">[Symbol.dispose]</td><td class="type-col">() =&gt; void</td><td>Releases the snapshot via <code>using</code> (Explicit Resource Management).</td></tr>
+  </table>
+  <pre><code>// Usage with Explicit Resource Management
+{
+  using sn = db.getSnapshot();
+  const val = await db.get(key, { snapshot: sn });
+}</code></pre>
+</div>
+
+<h2 id="comparator">Comparator <span class="badge badge-interface">interface</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">Key ordering abstraction. Implement to customize sort order. <span class="src-link">src/comparator.ts</span></p>
+
+  <h4>Comparator Interface</h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Signature</th><th>Description</th></tr>
+    <tr><td class="name-col">name</td><td class="type-col">() =&gt; string</td><td>Returns a unique name for this comparator (persisted in MANIFEST).</td></tr>
+    <tr><td class="name-col">compare</td><td class="type-col">(a: Buffer, b: Buffer) =&gt; number</td><td>Returns negative if a &lt; b, zero if equal, positive if a &gt; b.</td></tr>
+    <tr><td class="name-col">findShortestSeparator</td><td class="type-col">(start: Buffer, limit: Buffer) =&gt; Buffer</td><td>Returns the shortest key in [start, limit) to reduce index size.</td></tr>
+    <tr><td class="name-col">findShortSuccessor</td><td class="type-col">(key: Buffer) =&gt; Buffer</td><td>Returns the shortest key &gt; the given key.</td></tr>
+  </table>
+
+  <h4>BytewiseComparator <span class="badge badge-class">class</span></h4>
+  <p class="description-block">Default implementation — byte-wise lexicographic comparison using <code>Buffer.compare()</code>.</p>
+  <pre><code>const cmp = new BytewiseComparator();
+cmp.compare(Buffer.from('a'), Buffer.from('b')); // → negative</code></pre>
+</div>
+
+<h2 id="status">Status <span class="badge badge-class">class</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">Error-status representation used internally by iterators and I/O operations. <span class="src-link">src/status.ts</span></p>
+
+  <h4>StatusCode (enum)</h4>
+  <table class="api-table">
+    <tr><th>Member</th><th>Value</th></tr>
+    <tr><td class="name-col">OK</td><td>0</td></tr>
+    <tr><td class="name-col">NotFound</td><td>1</td></tr>
+    <tr><td class="name-col">Corruption</td><td>2</td></tr>
+    <tr><td class="name-col">NotSupported</td><td>3</td></tr>
+    <tr><td class="name-col">IOError</td><td>4</td></tr>
+  </table>
+
+  <h4>Static Factory Methods</h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+    <tr><td class="name-col">Status.ok()</td><td class="type-col">Status</td><td>Success status</td></tr>
+    <tr><td class="name-col">Status.notFound(msg)</td><td class="type-col">Status</td><td>Key not found</td></tr>
+    <tr><td class="name-col">Status.corruption(msg)</td><td class="type-col">Status</td><td>Data corruption detected</td></tr>
+    <tr><td class="name-col">Status.notSupported(msg)</td><td class="type-col">Status</td><td>Unsupported operation</td></tr>
+    <tr><td class="name-col">Status.ioError(msg)</td><td class="type-col">Status</td><td>I/O error</td></tr>
+  </table>
+
+  <h4>Instance Methods</h4>
+  <table class="api-table">
+    <tr><td class="name-col">ok()</td><td class="type-col">() =&gt; boolean</td></tr>
+    <tr><td class="name-col">isNotFound()</td><td class="type-col">() =&gt; boolean</td></tr>
+    <tr><td class="name-col">isCorruption()</td><td class="type-col">() =&gt; boolean</td></tr>
+    <tr><td class="name-col">isIOError()</td><td class="type-col">() =&gt; boolean</td></tr>
+    <tr><td class="name-col">isNotSupported()</td><td class="type-col">() =&gt; boolean</td></tr>
+    <tr><td class="name-col">toString()</td><td class="type-col">() =&gt; string</td></tr>
+  </table>
+</div>
+
+<h2 id="errors">Errors <span class="badge badge-class">classes</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">Typed error hierarchy for predictable error handling. <span class="src-link">src/error.ts</span></p>
+
+  <table class="api-table">
+    <tr><th>Class</th><th>code</th><th>Extends</th><th>Description</th></tr>
+    <tr><td class="name-col">LevelDBError</td><td class="type-col">(custom)</td><td>Error</td><td>Base error class with <code>code</code> property</td></tr>
+    <tr><td class="name-col">NotFoundError</td><td class="type-col">'NOT_FOUND'</td><td>LevelDBError</td><td>Key not found</td></tr>
+    <tr><td class="name-col">CorruptionError</td><td class="type-col">'CORRUPTION'</td><td>LevelDBError</td><td>Data integrity violation</td></tr>
+    <tr><td class="name-col">IOError</td><td class="type-col">'IO_ERROR'</td><td>LevelDBError</td><td>File-system I/O failure</td></tr>
+  </table>
+
+  <h4>statusToError()</h4>
+  <p>Converts a <code>Status</code>-like object into the corresponding <code>LevelDBError</code> subclass. Throws if the status is not OK.</p>
+  <pre><code>statusToError(Status.corruption('bad block')); // throws CorruptionError</code></pre>
+</div>
+
+<h2 id="cache">LRUCache <span class="badge badge-class">class</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Least-Recently-Used cache with charge-based eviction. Used internally for the TableCache and optionally as a block cache.
+    <span class="src-link">src/cache.ts</span>
+  </p>
+
+  <h4>CacheHandle (interface)</h4>
+  <table class="api-table">
+    <tr><td class="name-col">value</td><td class="type-col">Buffer</td><td>The cached value</td></tr>
+    <tr><td class="name-col">charge</td><td class="type-col">number</td><td>Capacity consumed by this entry</td></tr>
+  </table>
+
+  <h4>LRUCache Methods</h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Signature</th><th>Description</th></tr>
+    <tr><td class="name-col">constructor</td><td class="type-col">(capacity: number, onEvict?: (key, value) =&gt; void)</td><td>Creates an LRU cache with the given capacity in bytes. Optional eviction callback.</td></tr>
+    <tr><td class="name-col">insert</td><td class="type-col">(key: Buffer, value: Buffer, charge: number) =&gt; CacheHandle</td><td>Inserts an entry, evicting LRU items if needed to make room.</td></tr>
+    <tr><td class="name-col">lookup</td><td class="type-col">(key: Buffer) =&gt; CacheHandle | null</td><td>Looks up an entry and moves it to head (MRU position).</td></tr>
+    <tr><td class="name-col">erase</td><td class="type-col">(key: Buffer) =&gt; void</td><td>Removes a specific entry. Does NOT invoke the eviction callback.</td></tr>
+    <tr><td class="name-col">totalCharge</td><td class="type-col">() =&gt; number</td><td>Returns the current total charge of all cached entries.</td></tr>
+    <tr><td class="name-col">prune</td><td class="type-col">() =&gt; void</td><td>Removes all entries from the cache.</td></tr>
+  </table>
+</div>
+
+<h2 id="env">Env <span class="badge badge-interface">interface</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">File-system abstraction layer. Implement to support custom storage backends. <span class="src-link">src/env.ts</span></p>
+
+  <h4>Env Interface</h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Signature</th></tr>
+    <tr><td class="name-col">createDir</td><td class="type-col">(name: string) =&gt; Promise&lt;void&gt;</td></tr>
+    <tr><td class="name-col">removeDir</td><td class="type-col">(name: string) =&gt; Promise&lt;void&gt;</td></tr>
+    <tr><td class="name-col">readFile</td><td class="type-col">(filename: string) =&gt; Promise&lt;Buffer&gt;</td></tr>
+    <tr><td class="name-col">writeFile</td><td class="type-col">(filename: string, data: Buffer) =&gt; Promise&lt;void&gt;</td></tr>
+    <tr><td class="name-col">removeFile</td><td class="type-col">(filename: string) =&gt; Promise&lt;void&gt;</td></tr>
+    <tr><td class="name-col">renameFile</td><td class="type-col">(oldPath: string, newPath: string) =&gt; Promise&lt;void&gt;</td></tr>
+    <tr><td class="name-col">fileExists</td><td class="type-col">(filename: string) =&gt; Promise&lt;boolean&gt;</td></tr>
+    <tr><td class="name-col">getChildren</td><td class="type-col">(dir: string) =&gt; Promise&lt;string[]&gt;</td></tr>
+    <tr><td class="name-col">getFileSize</td><td class="type-col">(filename: string) =&gt; Promise&lt;number&gt;</td></tr>
+    <tr><td class="name-col">lockFile</td><td class="type-col">(filename: string) =&gt; Promise&lt;void&gt;</td></tr>
+    <tr><td class="name-col">unlockFile</td><td class="type-col">(filename: string) =&gt; Promise&lt;void&gt;</td></tr>
+  </table>
+
+  <h4>NodeEnv <span class="badge badge-class">class</span></h4>
+  <p>Default Node.js implementation using <code>fs</code> and <code>fs/promises</code>.</p>
+</div>
+
+<h2 id="logger">Logger <span class="badge badge-interface">interface</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">Pluggable logging. <span class="src-link">src/logger.ts</span></p>
+
+  <table class="api-table">
+    <tr><th>Class</th><th>Description</th></tr>
+    <tr><td class="name-col">ConsoleLogger</td><td class="desc-col">Writes to <code>console.log</code>/<code>warn</code>/<code>error</code> with <code>[INFO]</code>/<code>[WARN]</code>/<code>[ERROR]</code> prefixes.</td></tr>
+    <tr><td class="name-col">NoopLogger</td><td class="desc-col">Silently discards all log messages.</td></tr>
+  </table>
+  <p>Both implement: <code>info(msg, ...args)</code>, <code>warn(msg, ...args)</code>, <code>error(msg, ...args)</code>.</p>
+</div>
+
+<h2 id="repair">repairDB <span class="badge badge-function">function</span> <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">Repairs a database that may have a stale or missing CURRENT file. <span class="src-link">src/repair.ts</span></p>
+  <pre><code>await repairDB(dbname: string, options?: DBOptions): Promise&lt;void&gt;</code></pre>
+  <p class="description-block">Removes stale lock files, re-creates CURRENT from the latest MANIFEST, and validates by opening/closing the database.</p>
+</div>
+
+<h2 id="sstable-public">SSTable Public API <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">Exported SSTable classes for advanced usage. <span class="src-link">src/sstable/table.ts</span>, <span class="src-link">src/sstable/table_builder.ts</span></p>
+
+  <h4>Table <span class="badge badge-class">class</span></h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Signature</th><th>Description</th></tr>
+    <tr><td class="name-col">Table.open</td><td class="type-col">(filename: string, verifyChecksums?: boolean) =&gt; Promise&lt;Table&gt;</td><td>Opens an existing SSTable file.</td></tr>
+    <tr><td class="name-col">internalGet</td><td class="type-col">(cmp: Comparator, key: Buffer) =&gt; Promise&lt;{value: Buffer} | null&gt;</td><td>Looks up a key within this SSTable. Checks Bloom filter first.</td></tr>
+    <tr><td class="name-col">iterator</td><td class="type-col">(cmp: Comparator) =&gt; TwoLevelIterator</td><td>Returns a two-level iterator over the SSTable (index → data blocks).</td></tr>
+  </table>
+
+  <h4>TableBuilder <span class="badge badge-class">class</span></h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Signature</th><th>Description</th></tr>
+    <tr><td class="name-col">constructor</td><td class="type-col">(filename: string, options: Required&lt;DBOptions&gt;)</td><td>Creates an SSTable builder. Keys must be added in sorted order.</td></tr>
+    <tr><td class="name-col">add</td><td class="type-col">(key: Buffer, value: Buffer) =&gt; Promise&lt;void&gt;</td><td>Adds a key-value pair. Flushes a data block when block size is reached.</td></tr>
+    <tr><td class="name-col">finish</td><td class="type-col">() =&gt; Promise&lt;void&gt;</td><td>Writes the filter block, meta-index, index block, and footer. Must be called last.</td></tr>
+  </table>
+
+  <h4>TableBuilderOptions</h4>
+  <p>Type alias: <code>type TableBuilderOptions = Required&lt;DBOptions&gt;</code>. The resolved options type used by <code>TableBuilder</code> constructor.</p>
+
+  <h4>openTable</h4>
+  <p>Convenience alias: <code>export const openTable = Table.open</code>.</p>
+</div>
+
+<h2 id="bloom">Bloom Filter <span class="badge badge-public">public</span></h2>
+<div class="module-section">
+  <p class="description-block">Bloom filter policy for SSTables to reduce disk seeks. <span class="src-link">src/sstable/bloom.ts</span></p>
+
+  <h4>FilterPolicy (interface)</h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Signature</th><th>Description</th></tr>
+    <tr><td class="name-col">name</td><td class="type-col">() =&gt; string</td><td>Returns the filter name (persisted in meta-index).</td></tr>
+    <tr><td class="name-col">createFilter</td><td class="type-col">(keys: Buffer[]) =&gt; Buffer</td><td>Builds a Bloom filter for a set of keys.</td></tr>
+    <tr><td class="name-col">keyMayMatch</td><td class="type-col">(key: Buffer, filter: Buffer) =&gt; boolean</td><td>Tests if a key <em>may</em> be present (false negatives impossible).</td></tr>
+  </table>
+
+  <h4>newBloomFilterPolicy()</h4>
+  <pre><code>newBloomFilterPolicy(bitsPerKey: number): FilterPolicy</code></pre>
+  <p>Returns a <code>BloomFilterPolicy</code> with <em>k = bitsPerKey * ln(2)</em> hash functions and CRC32-based double hashing.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- INTERNAL / PRIVATE API                                          -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+
+<h2>Internal API</h2>
+<p class="description-block">
+  The following modules are not exported from the package entry point but form the internal engine.
+  They are documented here for contributors and advanced users who need to understand the implementation.
+</p>
+
+<h2 id="dbimpl">DBImpl <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Concrete <code>DB</code> implementation. Manages the full LSM lifecycle: MemTable, WAL, VersionSet, TableCache, and Compaction.
+    <span class="src-link">src/db_impl.ts</span>
+  </p>
+
+  <h4>Internal State</h4>
+  <table class="api-table">
+    <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+    <tr><td class="name-col">dbname</td><td class="type-col">string</td><td>Database directory path</td></tr>
+    <tr><td class="name-col">options</td><td class="type-col">Required&lt;DBOptions&gt;</td><td>Resolved configuration (merged with defaults)</td></tr>
+    <tr><td class="name-col">cmp</td><td class="type-col">Comparator</td><td>User key comparator (default: BytewiseComparator)</td></tr>
+    <tr><td class="name-col">env</td><td class="type-col">NodeEnv</td><td>File-system abstraction instance</td></tr>
+    <tr><td class="name-col">mem</td><td class="type-col">MemTable</td><td>Active (mutable) MemTable</td></tr>
+    <tr><td class="name-col">immutableMem</td><td class="type-col">MemTable | null</td><td>Frozen MemTable being flushed to SSTable</td></tr>
+    <tr><td class="name-col">log</td><td class="type-col">LogWriter</td><td>Active WAL writer</td></tr>
+    <tr><td class="name-col">logNumber</td><td class="type-col">number</td><td>Current WAL log file number</td></tr>
+    <tr><td class="name-col">versions</td><td class="type-col">VersionSet</td><td>Current DB version with all SSTable file metadata</td></tr>
+    <tr><td class="name-col">seq</td><td class="type-col">SequenceNumber (bigint)</td><td>Monotonically increasing write sequence number</td></tr>
+    <tr><td class="name-col">snapshots</td><td class="type-col">Snapshot[]</td><td>Active snapshots (prevent sequence garbage collection)</td></tr>
+    <tr><td class="name-col">closed</td><td class="type-col">boolean</td><td>Whether the database has been closed</td></tr>
+    <tr><td class="name-col">tableCache</td><td class="type-col">TableCache</td><td>LRU-cached open SSTable handles</td></tr>
+    <tr><td class="name-col">compactionScheduler</td><td class="type-col">CompactionScheduler</td><td>Orchestrates compaction (sync or via Worker Thread)</td></tr>
+    <tr><td class="name-col">compactionWorker</td><td class="type-col">Worker | null</td><td>Worker Thread for async compaction (best-effort)</td></tr>
+    <tr><td class="name-col">writeLock</td><td class="type-col">Promise&lt;void&gt;</td><td>Promise-based write serialization lock</td></tr>
+  </table>
+
+  <h4>Key Internal Methods</h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Visibility</th><th>Description</th></tr>
+    <tr><td class="name-col">sstableGet(key, snapshot)</td><td class="type-col">private async</td><td>Level-by-level SSTable lookup: L0 scanned newest-first (may overlap), L1+ binary search.</td></tr>
+    <tr><td class="name-col">lookupFile(file, key, snapshot)</td><td class="type-col">private async</td><td>Searches a single SSTable using iterator + InternalKey decode. Paranoid checks optional.</td></tr>
+    <tr><td class="name-col">findFile(files, key)</td><td class="type-col">private</td><td>Binary search for the SSTable whose range contains a user key (L1+).</td></tr>
+    <tr><td class="name-col">makeRoomForWrite()</td><td class="type-col">private async</td><td>Freezes the MemTable and triggers a flush when write buffer threshold is exceeded.</td></tr>
+    <tr><td class="name-col">flushMemTable(mem)</td><td class="type-col">private async</td><td>Builds an SSTable from a MemTable, registers it in the VersionSet at L0, triggers compaction.</td></tr>
+    <tr><td class="name-col">makeInternalComparator(cmp)</td><td class="type-col">private</td><td>Wraps a user comparator into an InternalKey comparator (user key ASC, sequence DESC).</td></tr>
+  </table>
+</div>
+
+<h2 id="types">Internal Types <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">Core data structures for InternalKey encoding, file metadata, and range representation. <span class="src-link">src/types.ts</span></p>
+
+  <h4>Enums &amp; Constants</h4>
+  <table class="api-table">
+    <tr><th>Name</th><th>Kind</th><th>Description</th></tr>
+    <tr><td class="name-col">ValueType</td><td class="type-col">const enum</td><td><code>Deletion = 0</code>, <code>Value = 1</code>. Determines whether an InternalKey is a tombstone.</td></tr>
+    <tr><td class="name-col">kMaxSequenceNumber</td><td class="type-col">const</td><td><code>2^56 - 1</code>. Maximum valid sequence number (upper 8 bits reserved for ValueType).</td></tr>
+  </table>
+
+  <h4>Exported Types</h4>
+  <table class="api-table">
+    <tr><th>Name</th><th>Definition</th><th>Description</th></tr>
+    <tr><td class="name-col">SequenceNumber</td><td class="type-col">bigint</td><td>Monotonically increasing 64-bit counter</td></tr>
+    <tr><td class="name-col">InternalKey</td><td class="type-col">Buffer</td><td>Format: <code>user_key + 8 bytes (sequence &lt;&lt; 8 | type, XOR-inverted for descending sort)</code></td></tr>
+    <tr><td class="name-col">FileMetaData</td><td class="type-col">interface</td><td><code>{ fileNumber, fileSize, smallest (InternalKey), largest (InternalKey) }</code></td></tr>
+    <tr><td class="name-col">Range</td><td class="type-col">interface</td><td><code>{ start: Buffer, limit: Buffer }</code></td></tr>
+  </table>
+
+  <h4>Functions</h4>
+  <table class="api-table">
+    <tr><th>Function</th><th>Signature</th><th>Description</th></tr>
+    <tr><td class="name-col">encodeInternalKey</td><td class="type-col">(userKey: Buffer, seq: SequenceNumber, type: ValueType) =&gt; Buffer</td><td>Packs user key with sequence and type into an 8-byte suffix. XOR-inverts sequence bits so larger seq → smaller byte order.</td></tr>
+    <tr><td class="name-col">decodeInternalKey</td><td class="type-col">(ikey: Buffer) =&gt; { userKey, sequence, valueType }</td><td>Unpacks an InternalKey into its three components.</td></tr>
+  </table>
+
+  <h4>InternalKey Layout</h4>
+  <pre><code>┌──────────────┬────────────────────────────────┐
+│  user_key    │  8-byte suffix (big-endian)    │
+│  (variable)  │  sequence&lt;&lt;8 | type  XOR mask  │
+└──────────────┴────────────────────────────────┘
+Mask: 0xffffffffffffff00  — inverts upper 56 bits for descending seq sort.
+This ensures newer versions sort BEFORE older versions for the same key.</code></pre>
+</div>
+
+<h2 id="codec">Codec <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">Low-level encoding/decoding utilities: Varint, CRC32, user key/value conversion. <span class="src-link">src/codec.ts</span></p>
+
+  <h4>Varint32</h4>
+  <table class="api-table">
+    <tr><td class="name-col">putVarint32(value: number)</td><td class="type-col">Buffer</td><td>Encodes an unsigned 32-bit int as variable-length (1–5 bytes).</td></tr>
+    <tr><td class="name-col">getVarint32(buf: Buffer, offset?: number)</td><td class="type-col">[number, number]</td><td>Decodes a Varint32. Returns <code>[value, bytesRead]</code>.</td></tr>
+  </table>
+
+  <h4>Varint64</h4>
+  <table class="api-table">
+    <tr><td class="name-col">putVarint64(value: bigint)</td><td class="type-col">Buffer</td><td>Encodes an unsigned 64-bit int as variable-length (1–10 bytes).</td></tr>
+    <tr><td class="name-col">getVarint64(buf: Buffer, offset?: number)</td><td class="type-col">[bigint, number]</td><td>Decodes a Varint64. Returns <code>[value, bytesRead]</code>.</td></tr>
+  </table>
+
+  <h4>Fixed32 (Little-Endian)</h4>
+  <table class="api-table">
+    <tr><td class="name-col">putFixed32(buf: Buffer, value: number)</td><td class="type-col">void</td><td>Writes a 32-bit LE integer at offset 0.</td></tr>
+    <tr><td class="name-col">getFixed32(buf: Buffer, offset?: number)</td><td class="type-col">number</td><td>Reads a 32-bit LE integer.</td></tr>
+  </table>
+
+  <h4>CRC32</h4>
+  <table class="api-table">
+    <tr><td class="name-col">crc32(data: Buffer)</td><td class="type-col">number</td><td>Table-driven CRC32C (Castagnoli). Used for SSTable block checksums and Bloom filter hashing.</td></tr>
+    <tr><td class="name-col">crc32cMask(crc: number)</td><td class="type-col">number</td><td>Rotates right by 15 bits and adds a constant (used in WAL checksums).</td></tr>
+    <tr><td class="name-col">crc32cUnmask(masked: number)</td><td class="type-col">number</td><td>Reverses <code>crc32cMask</code>.</td></tr>
+  </table>
+
+  <h4>User Key/Value Encoding</h4>
+  <table class="api-table">
+    <tr><td class="name-col">encodeUserKey(key, encoding)</td><td class="type-col">Buffer</td><td>Converts string or Buffer to Buffer based on encoding.</td></tr>
+    <tr><td class="name-col">decodeUserKey(key, encoding)</td><td class="type-col">string | Buffer</td><td>Converts Buffer to string or returns as-is based on encoding.</td></tr>
+    <tr><td class="name-col">encodeUserValue(value, encoding)</td><td class="type-col">Buffer</td><td>Same as encodeUserKey but for values.</td></tr>
+    <tr><td class="name-col">decodeUserValue(value, encoding)</td><td class="type-col">string | Buffer</td><td>Same as decodeUserKey but for values.</td></tr>
+  </table>
+</div>
+
+<h2 id="memtable">MemTable <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    In-memory write buffer backed by a SkipList. Wraps user keys into InternalKeys for MVCC support.
+    <span class="src-link">src/memtable.ts</span>
+  </p>
+
+  <h4>MemTableEntry (interface)</h4>
+  <p><code>{ value: Buffer; valueType: ValueType }</code></p>
+
+  <table class="api-table">
+    <tr><th>Method</th><th>Signature</th><th>Description</th></tr>
+    <tr><td class="name-col">constructor</td><td class="type-col">(cmp: Comparator)</td><td>Creates a MemTable with a SkipList using an InternalKey comparator.</td></tr>
+    <tr><td class="name-col">add</td><td class="type-col">(seq: SequenceNumber, type: ValueType, key: Buffer, value: Buffer) =&gt; void</td><td>Encodes an InternalKey and inserts into the SkipList.</td></tr>
+    <tr><td class="name-col">get</td><td class="type-col">(lookupKey: Buffer, snapshot: SequenceNumber) =&gt; MemTableEntry | null</td><td>Searches for a user key at or before the snapshot sequence.</td></tr>
+    <tr><td class="name-col">approximateMemoryUsage</td><td class="type-col">() =&gt; number</td><td>Returns the cumulative size of all inserted keys + values (bytes).</td></tr>
+    <tr><td class="name-col">getInternalIterator</td><td class="type-col">() =&gt; SkipListIterator</td><td>Returns a raw SkipList iterator over InternalKeys.</td></tr>
+  </table>
+</div>
+
+<h2 id="skiplist">SkipList <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Probabilistic ordered data structure with <em>O(log N)</em> average search/insert.
+    Max height 12, branching factor 4. All memory allocated from an Arena.
+    <span class="src-link">src/memtable/skiplist.ts</span>
+  </p>
+
+  <h4>SkipListNode (interface)</h4>
+  <p><code>{ key: Buffer; value: Buffer; next: (SkipListNode | null)[] }</code> — height is <code>next.length</code>.</p>
+
+  <h4>SkipList</h4>
+  <table class="api-table">
+    <tr><th>Member</th><th>Description</th></tr>
+    <tr><td class="name-col">head</td><td>Sentinel head node with next links at all levels.</td></tr>
+    <tr><td class="name-col">insert(key, value)</td><td>Inserts a node; key/value are deep-copied into the Arena.</td></tr>
+    <tr><td class="name-col">find(key)</td><td>Exact-match lookup. Returns <code>{key, value}</code> or null.</td></tr>
+    <tr><td class="name-col">findLessThan(key)</td><td>Finds the greatest node with key &lt; given key (used for prev()).</td></tr>
+    <tr><td class="name-col">findGreaterOrEqual(key)</td><td>Finds the first node with key &ge; given key (used for seek()).</td></tr>
+    <tr><td class="name-col">iterator()</td><td>Returns a <code>SkipListIterator</code>.</td></tr>
+  </table>
+
+  <h4>SkipListIterator</h4>
+  <p>Implements <code>IterLike</code>: <code>valid()</code>, <code>key()</code>, <code>value()</code>, <code>next()</code>, <code>prev()</code>, <code>seek()</code>, <code>seekToFirst()</code>, <code>seekToLast()</code>, <code>status()</code>.</p>
+</div>
+
+<h2 id="arena">Arena <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Simple bump allocator. Allocates 4 KB blocks and hands out slices. Used by SkipList to reduce GC pressure.
+    <span class="src-link">src/arena.ts</span>
+  </p>
+  <table class="api-table">
+    <tr><td class="name-col">allocate(bytes: number)</td><td class="type-col">Buffer</td><td>Returns a writable slice of at least <code>bytes</code> length.</td></tr>
+    <tr><td class="name-col">memoryUsage()</td><td class="type-col">number</td><td>Total bytes allocated across all blocks.</td></tr>
+  </table>
+</div>
+
+<h2 id="block">Block <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Immutable SSTable data block. Provides a restart-array-based iterator with binary seek.
+    <span class="src-link">src/sstable/block.ts</span>
+  </p>
+
+  <h4>Block</h4>
+  <table class="api-table">
+    <tr><td class="name-col">constructor(data: Buffer)</td><td>Parses the block; validates restart array bounds (rejects negative/corrupt offsets).</td></tr>
+    <tr><td class="name-col">iterator(cmp: Comparator)</td><td class="type-col">BlockIterator</td><td>Returns an iterator over the block.</td></tr>
+    <tr><td class="name-col">size()</td><td class="type-col">number</td><td>Returns the data length in bytes.</td></tr>
+  </table>
+
+  <h4>BlockIterator</h4>
+  <p>Implements <code>IterLike</code>. Uses restart points for O(log N) binary seek + linear scan. Decodes prefix-compressed entries (shared prefix + non-shared suffix Varint encoding).</p>
+</div>
+
+<h2 id="blockbuilder">BlockBuilder <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Builds SSTable data blocks with prefix compression and restart points.
+    <span class="src-link">src/sstable/block_builder.ts</span>
+  </p>
+  <table class="api-table">
+    <tr><td class="name-col">constructor(restartInterval: number)</td><td>Creates a builder; writes a full key every <code>restartInterval</code> entries.</td></tr>
+    <tr><td class="name-col">add(key, value)</td><td>Adds a key-value pair. Automatically computes shared prefix with previous key.</td></tr>
+    <tr><td class="name-col">finish()</td><td class="type-col">Buffer</td><td>Finalizes the block: appends restart offsets + count. Idempotent — throws on double-finish.</td></tr>
+    <tr><td class="name-col">estimatedSize()</td><td class="type-col">number</td><td>Current buffer size.</td></tr>
+  </table>
+</div>
+
+<h2 id="table">Table (SSTable) <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Immutable on-disk SSTable. Provides key lookup with Bloom filter and a two-level iterator.
+    <span class="src-link">src/sstable/table.ts</span>
+  </p>
+
+  <h4>SSTable File Layout</h4>
+  <pre><code>┌──────────────┬─────────────┬───────────┬──────────┬────────┐
+│  Data Blocks │ Filter Block│Meta-Index │  Index   │ Footer │
+│  (variable)  │  (variable) │  Block    │  Block   │ (48 B) │
+└──────────────┴─────────────┴───────────┴──────────┴────────┘
+Footer: metaOffset(8) + metaSize(8) + indexOffset(8) + indexSize(8)
+        + padding(8) + magic(8): 0x57fb808b247547db</code></pre>
+
+  <h4>Table Methods</h4>
+  <table class="api-table">
+    <tr><td class="name-col">Table.open(filename, verifyChecksums?)</td><td>Opens an SSTable; reads footer, index, and filter blocks.</td></tr>
+    <tr><td class="name-col">internalGet(cmp, key)</td><td>Looks up a key: checks Bloom filter → index block seek → data block seek. Returns null if absent.</td></tr>
+    <tr><td class="name-col">iterator(cmp)</td><td>Returns a <code>TwoLevelIterator</code> that lazily opens data blocks as it traverses the index.</td></tr>
+  </table>
+
+  <h4>TwoLevelIterator</h4>
+  <p>Implements <code>IterLike</code>: traverses index block entries, opening data blocks on demand. Supports seek, next, prev, seekToFirst, seekToLast.</p>
+
+  <h4>Internal: decompressBlock</h4>
+  <p>Handles Snappy and Zstd decompression based on the 1-byte compression type prefix in each block.</p>
+</div>
+
+<h2 id="tablebuilder">TableBuilder <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Builds SSTable files from sorted key-value pairs with compression, Bloom filter, and block-level indexing.
+    <span class="src-link">src/sstable/table_builder.ts</span>
+  </p>
+
+  <h4>TableBuilderOptions</h4>
+  <p><code>type TableBuilderOptions = Required&lt;DBOptions&gt;</code></p>
+
+  <h4>Methods</h4>
+  <table class="api-table">
+    <tr><td class="name-col">constructor(filename, options)</td><td>Initializes the builder. Writes blocks via <code>appendFileSync</code>.</td></tr>
+    <tr><td class="name-col">add(key, value)</td><td>Adds a sorted key-value pair. Auto-flushes a data block when <code>blockSize</code> is exceeded.</td></tr>
+    <tr><td class="name-col">finish()</td><td>Flushes the last data block, writes the filter block, meta-index, index, and footer.</td></tr>
+  </table>
+
+  <h4>Internal: compressBlock</h4>
+  <p>Attempts Snappy or Zstd compression; falls back to uncompressed if the compressed size is not smaller.</p>
+</div>
+
+<h2 id="tablecache">TableCache <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    LRU-cached open Table handles keyed by file number. Prevents re-opening frequently accessed SSTables.
+    <span class="src-link">src/table_cache.ts</span>
+  </p>
+  <table class="api-table">
+    <tr><td class="name-col">constructor(maxOpenFiles: number)</td><td>Creates a cache with the given capacity.</td></tr>
+    <tr><td class="name-col">getTable(filename, fileNumber, verifyChecksums?)</td><td class="type-col">Promise&lt;Table&gt;</td><td>Returns a cached Table, or opens and caches it if not present.</td></tr>
+    <tr><td class="name-col">evict(fileNumber)</td><td class="type-col">void</td><td>Removes a specific file from the cache.</td></tr>
+  </table>
+</div>
+
+<h2 id="wal">WAL (Write-Ahead Log) <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">32 KB block-structured write-ahead log for crash recovery. <span class="src-link">src/wal/reader.ts</span>, <span class="src-link">src/wal/writer.ts</span></p>
+
+  <h4>LogWriter</h4>
+  <table class="api-table">
+    <tr><td class="name-col">constructor(filename: string)</td><td>Opens a file for writing (overwrites existing).</td></tr>
+    <tr><td class="name-col">addRecord(data: Buffer)</td><td>Writes a record, splitting across 32 KB blocks with Full/First/Middle/Last record types. CRC32C checksum per fragment.</td></tr>
+    <tr><td class="name-col">sync()</td><td class="type-col">void</td><td>Forces an fsync on the underlying file descriptor.</td></tr>
+    <tr><td class="name-col">close()</td><td class="type-col">Promise&lt;void&gt;</td><td>Syncs and closes the file.</td></tr>
+  </table>
+
+  <h4>LogReader</h4>
+  <table class="api-table">
+    <tr><td class="name-col">constructor(filename: string)</td><td>Reads the entire log file into memory.</td></tr>
+    <tr><td class="name-col">readNext()</td><td class="type-col">Buffer | null</td><td>Reads the next complete record (reassembling fragments). Verifies CRC32C checksums. Returns null at EOF.</td></tr>
+  </table>
+
+  <h4>Record Types</h4>
+  <p><code>Full = 1</code>, <code>First = 2</code>, <code>Middle = 3</code>, <code>Last = 4</code> — records that span block boundaries are split into fragments.</p>
+
+  <h4>Block Format</h4>
+  <pre><code>┌──────────────┬────────┬──────────────────────┐
+│  Checksum(4) │Len(2)  │  Type(1) + Payload   │
+│  (masked)    │        │                      │
+└──────────────┴────────┴──────────────────────┘
+Block size: 32768 bytes</code></pre>
+</div>
+
+<h2 id="filename">Filename Helpers <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">Naming convention helpers for LevelDB on-disk files. <span class="src-link">src/sstable/filename.ts</span></p>
+  <table class="api-table">
+    <tr><td class="name-col">tableFileName(dbname, fileNumber)</td><td class="type-col">string</td><td>Returns <code>{dbname}/{NNNNNN}.ldb</code></td></tr>
+    <tr><td class="name-col">logFileName(dbname, fileNumber)</td><td class="type-col">string</td><td>Returns <code>{dbname}/{NNNNNN}.log</code></td></tr>
+  </table>
+</div>
+
+<h2 id="version">Version <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Immutable snapshot of database state: files per level (0–6). Sort order maintained per level.
+    <span class="src-link">src/version/version.ts</span>
+  </p>
+  <table class="api-table">
+    <tr><td class="name-col">files(level: number)</td><td class="type-col">FileMetaData[]</td><td>Returns all files at the given level.</td></tr>
+    <tr><td class="name-col">addFile(level, f)</td><td class="type-col">void</td><td>Adds a file and re-sorts by smallest key.</td></tr>
+    <tr><td class="name-col">removeFile(level, fileNumber)</td><td class="type-col">void</td><td>Removes a file by number.</td></tr>
+  </table>
+</div>
+
+<h2 id="versionedit">VersionEdit <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Delta-encoded state change. Records added/deleted files, log numbers, sequence numbers, and compaction pointers.
+    Serialized to/from the MANIFEST WAL.
+    <span class="src-link">src/version/version_edit.ts</span>
+  </p>
+
+  <table class="api-table">
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td class="name-col">setComparatorName(name)</td><td>Sets the comparator used for this DB.</td></tr>
+    <tr><td class="name-col">setLogNumber(num) / setPrevLogNumber(num)</td><td>Sets WAL log file numbers.</td></tr>
+    <tr><td class="name-col">setNextFile(num)</td><td>Sets the next allocated file number.</td></tr>
+    <tr><td class="name-col">setLastSequence(seq)</td><td>Sets the last committed sequence number.</td></tr>
+    <tr><td class="name-col">setCompactPointer(level, key)</td><td>Records a compaction progress pointer.</td></tr>
+    <tr><td class="name-col">deleteFile(level, fileNumber)</td><td>Marks a file for deletion.</td></tr>
+    <tr><td class="name-col">addFile(level, meta)</td><td>Adds a new SSTable file to a level.</td></tr>
+    <tr><td class="name-col">encode()</td><td class="type-col">Buffer</td><td>Serializes to the MANIFEST wire format (Varint-tagged fields).</td></tr>
+    <tr><td class="name-col" style="color:var(--method-post)">static decode(buf)</td><td class="type-col">VersionEdit</td><td>Deserializes from the MANIFEST wire format.</td></tr>
+  </table>
+</div>
+
+<h2 id="versionedittag">VersionEditTag <span class="badge badge-enum">enum</span> <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Tag constants for MANIFEST record fields. Each tag identifies a field type in the VersionEdit binary format.
+    <span class="src-link">src/version/version_edit_tag.ts</span>
+  </p>
+  <table class="api-table">
+    <tr><th>Member</th><th>Value</th><th>Description</th></tr>
+    <tr><td class="name-col">Comparator</td><td class="type-col">1</td><td>Comparator name string</td></tr>
+    <tr><td class="name-col">LogNumber</td><td class="type-col">2</td><td>Current WAL log file number</td></tr>
+    <tr><td class="name-col">PrevLogNumber</td><td class="type-col">3</td><td>Previous WAL log file number</td></tr>
+    <tr><td class="name-col">NextFileNumber</td><td class="type-col">4</td><td>Next available file number</td></tr>
+    <tr><td class="name-col">LastSequence</td><td class="type-col">5</td><td>Last committed sequence number</td></tr>
+    <tr><td class="name-col">CompactPointer</td><td class="type-col">6</td><td>Compaction progress pointer (level + key)</td></tr>
+    <tr><td class="name-col">DeletedFile</td><td class="type-col">7</td><td>A file to be removed (level + file number)</td></tr>
+    <tr><td class="name-col">NewFile</td><td class="type-col">8</td><td>A new SSTable file added (level + full metadata)</td></tr>
+  </table>
+</div>
+
+<h2 id="versionset">VersionSet <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Manages the CURRENT version, MANIFEST persistence, file number allocation, and edit application.
+    <span class="src-link">src/version/version_set.ts</span>
+  </p>
+
+  <table class="api-table">
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td class="name-col">initialize(createIfMissing)</td><td>Creates or recovers the database from MANIFEST.</td></tr>
+    <tr><td class="name-col">current()</td><td class="type-col">Version</td><td>Returns the current version.</td></tr>
+    <tr><td class="name-col">lastSequence() / setLastSequence(seq)</td><td>Gets/sets the last committed sequence number.</td></tr>
+    <tr><td class="name-col">newVersionEdit()</td><td class="type-col">VersionEdit</td><td>Creates a new edit for mutation.</td></tr>
+    <tr><td class="name-col">allocateFileNumber()</td><td class="type-col">number</td><td>Returns a unique, monotonically increasing file number.</td></tr>
+    <tr><td class="name-col">logAndApply(edit)</td><td>Applies an edit to the current version and persists it to the MANIFEST.</td></tr>
+    <tr><td class="name-col">getDBName()</td><td class="type-col">string</td><td>Returns the database directory path.</td></tr>
+    <tr><td class="name-col">manifestFileNum()</td><td class="type-col">number</td><td>Returns the current MANIFEST file number.</td></tr>
+  </table>
+</div>
+
+<h2 id="compaction">Compaction <span class="badge badge-internal">internal</span></h2>
+<div class="module-section">
+  <p class="description-block">
+    Merges SSTables across levels to reduce read amplification and reclaim space from deleted entries.
+    <span class="src-link">src/compaction/scheduler.ts</span>, <span class="src-link">src/compaction/worker.ts</span>
+  </p>
+
+  <h4>CompactionScheduler</h4>
+  <table class="api-table">
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td class="name-col">constructor(dbname, options, versions)</td><td>Initializes with BytewiseComparator.</td></tr>
+    <tr><td class="name-col">attachWorker(worker)</td><td>Attaches a Worker Thread for async compaction.</td></tr>
+    <tr><td class="name-col">detachWorker()</td><td>Terminates and detaches the Worker.</td></tr>
+    <tr><td class="name-col">maybeCompact()</td><td class="type-col">Promise&lt;boolean&gt;</td><td>Synchronous fallback: compacts L0 if &gt;4 files.</td></tr>
+    <tr><td class="name-col">maybeCompactAsync()</td><td class="type-col">boolean</td><td>Dispatches async compaction to Worker; returns false if no Worker is available.</td></tr>
+    <tr><td class="name-col">compactLevel(level)</td><td>Sync merge-compaction: merges overlapping SSTables from (level, level+1) into a single new file.</td></tr>
+    <tr><td class="name-col">compactLevelAsync(level)</td><td>Posts a <code>DoCompaction</code> message to the Worker and applies the result.</td></tr>
+  </table>
+
+  <h4>Compaction Worker</h4>
+  <p>Runs in a <code>worker_threads</code> Worker. Handles two message types:</p>
+  <table class="api-table">
+    <tr><th>Message Type</th><th>Description</th></tr>
+    <tr><td class="name-col">CompactMemtable</td><td>Builds an SSTable from raw hex-encoded key/value pairs.</td></tr>
+    <tr><td class="name-col">DoCompaction</td><td>Merges multiple SSTables into one (heap-based k-way merge).</td></tr>
+  </table>
+
+  <h4>Worker Message Types</h4>
+  <table class="api-table">
+    <tr><th>Type</th><th>Kind</th><th>Fields</th></tr>
+    <tr><td class="name-col">WorkerRequest</td><td class="type-col">type</td><td><code>CompactMemtableRequest | DoCompactionRequest</code></td></tr>
+    <tr><td class="name-col">WorkerResponse</td><td class="type-col">interface</td><td><code>{ type: 'CompactionDone', fileNumber, fileSize, smallest, largest }</code></td></tr>
+    <tr><td class="name-col">WorkerError</td><td class="type-col">interface</td><td><code>{ type: 'Error', message }</code></td></tr>
+  </table>
+
+  <h4>Compaction Algorithm (Sync &amp; Worker)</h4>
+  <pre><code>1. Select input files from level N + overlapping files from level N+1
+2. Open all SSTables and create iterators
+3. Build a min-heap using InternalKey comparator (newest seq first)
+4. K-way merge: emit the first occurrence of each unique InternalKey
+   (deduplication — older versions of the same key are discarded)
+5. Build output SSTable via TableBuilder
+6. Write VersionEdit: delete old files, add new file
+7. logAndApply to persist the change</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- FOOTER                                                          -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+
+<div style="margin-top:64px;padding:24px 0;border-top:1px solid var(--border);color:var(--text-secondary);font-size:13px;">
+  <p>leveldb-ts v0.1.2 — <code>@wulai2332/leveldb-ts</code> — MIT License</p>
+  <p>25 core modules, zero native dependencies, pure TypeScript on Node.js &ge;20.</p>
+</div>
+
+</main>
+
+<script>
+function filterNav(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('nav.sidebar a').forEach(a => {
+    const text = a.textContent.toLowerCase();
+    a.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>
